@@ -1,0 +1,8 @@
+node_modules
+coverage
+dist
+.expo
+.next
+package-lock.json
+ia/logs
+docs/03-lista-de-tareas.md

@@ -1,0 +1,35 @@
+# Dependencias y artefactos
+node_modules/
+dist/
+build/
+coverage/
+.expo/
+.expo-shared/
+
+# Nativos generados
+ios/
+android/
+
+# Secretos: NUNCA al repositorio
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.keystore
+*.jks
+*firebase-adminsdk*.json
+*serviceaccount*.json
+
+# Despliegue y herramientas
+.vercel/
+.husky/_/
+
+# Registros de la IA (se regeneran)
+ia/logs/*.log
+
+# Sistema
+.DS_Store
+*.log

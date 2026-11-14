@@ -1,0 +1,17 @@
+{
+  "name": "lista-de-tareas-app",
+  "version": "0.0.0",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "expo start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "jest --passWithNoTests",
+    "test:coverage": "jest --coverage",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "check:ia": "node --test \"ia/pruebas/*.test.mjs\""
+  }
+}
