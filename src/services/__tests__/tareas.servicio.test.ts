@@ -181,6 +181,46 @@ describe("actualizarTarea · fechas", () => {
   });
 });
 
+describe("actualizarTarea · formato de fecha", () => {
+  it("acepta el mismo instante aunque el formato cambie de solo-fecha a ISO", async () => {
+    const { db, registro } = crearBaseFalsa({
+      fila: fila({ id: 4, vence_en: "2026-11-10" }),
+    });
+    const iso = new Date(2026, 10, 10).toISOString();
+
+    const resultado = await actualizarTarea(
+      db,
+      4,
+      entrada({ titulo: "Título corregido", vence_en: iso }),
+      AHORA,
+    );
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.tarea.titulo).toBe("Título corregido");
+      expect(resultado.tarea.vence_en).toBe(iso);
+    }
+    expect(registro.ejecuciones).toHaveLength(1);
+  });
+
+  it("no revalida el pasado cuando el instante no cambió", async () => {
+    const { db, registro } = crearBaseFalsa({
+      fila: fila({ id: 5, vence_en: "2026-11-10T05:00:00.000Z" }),
+    });
+    const soloFecha = "2026-11-10";
+
+    const resultado = await actualizarTarea(
+      db,
+      5,
+      entrada({ titulo: "Otra corrección", vence_en: soloFecha }),
+      AHORA,
+    );
+
+    expect(resultado.ok).toBe(true);
+    expect(registro.ejecuciones).toHaveLength(1);
+  });
+});
+
 describe("alternarCompletada", () => {
   it("invierte completada y la persiste", async () => {
     const { db, registro } = crearBaseFalsa();

@@ -8,7 +8,7 @@ import {
   obtener,
 } from "../repositories/tarea.repositorio";
 import type { DatosTarea } from "../repositories/tarea.repositorio";
-import { esPrioridadValida, ordenarTareas, sumarUnDia, validarTarea } from "./tarea";
+import { aFecha, esPrioridadValida, ordenarTareas, sumarUnDia, validarTarea } from "./tarea";
 import type { EntradaValidable, ErroresTarea, Tarea } from "./tarea";
 
 export type EntradaTarea = {
@@ -67,6 +67,24 @@ export async function crearTarea(
 }
 
 /**
+ * Compara por instante, no por texto: el formulario reenvía la fecha como ISO, así que
+ * "2026-11-10" y "2026-11-10T05:00:00.000Z" son la misma fecha y no deben revalidarse.
+ */
+function mismoInstante(a: string | null, b: string | null): boolean {
+  if (a === null || b === null) {
+    return a === b;
+  }
+
+  const fechaA = aFecha(a);
+  const fechaB = aFecha(b);
+  if (fechaA === null || fechaB === null) {
+    return a === b;
+  }
+
+  return fechaA.getTime() === fechaB.getTime();
+}
+
+/**
  * Una tarea vencida tiene, por definición, una fecha pasada. Si la fecha no cambia,
  * no se revalida su pasado: si no, no se podría corregir el título de una vencida.
  */
@@ -74,7 +92,7 @@ function validableParaActualizar(entrada: EntradaTarea, existente: Tarea): Entra
   return {
     titulo: entrada.titulo,
     prioridad: entrada.prioridad,
-    vence_en: entrada.vence_en === existente.vence_en ? null : entrada.vence_en,
+    vence_en: mismoInstante(entrada.vence_en, existente.vence_en) ? null : entrada.vence_en,
   };
 }
 
