@@ -48,7 +48,6 @@ export function evaluar(accion, recursos, raiz = "") {
   const lista = Array.isArray(recursos) ? recursos : [recursos];
 
   for (const recurso of lista) {
-    // Se permite explícitamente el ejemplo sin valores reales.
     const texto = String(recurso ?? "");
 
     if (accion === "read" || accion === "edit") {
