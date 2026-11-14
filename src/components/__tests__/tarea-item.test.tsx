@@ -32,11 +32,12 @@ describe("TareaItem", () => {
 
   it("marca una tarea vencida con estilo de alerta y etiqueta accesible", async () => {
     const { getByLabelText, getByTestId } = await render(
-      <TareaItem tarea={tarea()} onAlternar={jest.fn()} />,
+      <TareaItem tarea={tarea()} onAlternar={jest.fn()} onEditar={jest.fn()} />,
     );
 
     expect(getByLabelText("Comprar pan, tarea vencida")).toBeTruthy();
     expect(getByLabelText("Tarea vencida")).toBeTruthy();
+    expect(getByLabelText("Editar tarea: Comprar pan")).toBeTruthy();
 
     const estilo = StyleSheet.flatten(getByTestId("tarea-item").props.style);
     expect(estilo.borderColor).toBe(COLOR_ALERTA);

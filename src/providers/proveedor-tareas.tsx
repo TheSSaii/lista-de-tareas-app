@@ -11,8 +11,16 @@ import {
 } from "react";
 
 import { obtenerBaseDeDatos } from "../db/base-sesion";
+import { ordenarTareas } from "../services/tarea";
 import type { Tarea } from "../services/tarea";
-import { alternarCompletada, listarTareas } from "../services/tareas.servicio";
+import {
+  actualizarTarea,
+  alternarCompletada,
+  crearTarea,
+  eliminarTarea,
+  listarTareas,
+} from "../services/tareas.servicio";
+import type { EntradaTarea, ResultadoGuardado } from "../services/tareas.servicio";
 
 type ContextoTareas = {
   tareas: Tarea[];
@@ -20,6 +28,9 @@ type ContextoTareas = {
   error: string | null;
   alternar: (tarea: Tarea) => void;
   recargar: () => void;
+  crear: (entrada: EntradaTarea) => Promise<ResultadoGuardado>;
+  actualizar: (id: number, entrada: EntradaTarea) => Promise<ResultadoGuardado>;
+  eliminar: (id: number) => Promise<boolean>;
 };
 
 type EstadoTareas = Dispatch<SetStateAction<Tarea[]>>;
@@ -28,6 +39,8 @@ type EstadoError = Dispatch<SetStateAction<string | null>>;
 
 const MENSAJE_CARGA = "No se pudieron cargar las tareas.";
 const MENSAJE_ALTERAR = "No se pudo actualizar la tarea.";
+const MENSAJE_CREAR = "No se pudo crear la tarea.";
+const MENSAJE_ACTUALIZAR = "No se pudo actualizar la tarea.";
 
 const Contexto = createContext<ContextoTareas | null>(null);
 
@@ -104,6 +117,66 @@ function useAlternar(setTareas: EstadoTareas, setError: EstadoError): (tarea: Ta
   );
 }
 
+function useCrear(setTareas: EstadoTareas): (entrada: EntradaTarea) => Promise<ResultadoGuardado> {
+  return useCallback(
+    async (entrada: EntradaTarea): Promise<ResultadoGuardado> => {
+      try {
+        const db = await obtenerBaseDeDatos();
+        const resultado = await crearTarea(db, entrada);
+        if (resultado.ok) {
+          setTareas((previas) => ordenarTareas([...previas, resultado.tarea]));
+        }
+        return resultado;
+      } catch {
+        return { ok: false, errores: {}, error: MENSAJE_CREAR };
+      }
+    },
+    [setTareas],
+  );
+}
+
+function useActualizar(
+  setTareas: EstadoTareas,
+): (id: number, entrada: EntradaTarea) => Promise<ResultadoGuardado> {
+  return useCallback(
+    async (id: number, entrada: EntradaTarea): Promise<ResultadoGuardado> => {
+      try {
+        const db = await obtenerBaseDeDatos();
+        const resultado = await actualizarTarea(db, id, entrada);
+        if (resultado.ok) {
+          setTareas((previas) =>
+            ordenarTareas(
+              previas.map((tarea) => (tarea.id === resultado.tarea.id ? resultado.tarea : tarea)),
+            ),
+          );
+        }
+        return resultado;
+      } catch {
+        return { ok: false, errores: {}, error: MENSAJE_ACTUALIZAR };
+      }
+    },
+    [setTareas],
+  );
+}
+
+function useEliminar(setTareas: EstadoTareas): (id: number) => Promise<boolean> {
+  return useCallback(
+    async (id: number): Promise<boolean> => {
+      try {
+        const db = await obtenerBaseDeDatos();
+        const eliminada = await eliminarTarea(db, id);
+        if (eliminada) {
+          setTareas((previas) => previas.filter((tarea) => tarea.id !== id));
+        }
+        return eliminada;
+      } catch {
+        return false;
+      }
+    },
+    [setTareas],
+  );
+}
+
 export function ProveedorTareas({ children }: { children: ReactNode }) {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -112,10 +185,13 @@ export function ProveedorTareas({ children }: { children: ReactNode }) {
   useCargaInicial(setTareas, setCargando, setError);
   const recargar = useRecargar(setTareas, setCargando, setError);
   const alternar = useAlternar(setTareas, setError);
+  const crear = useCrear(setTareas);
+  const actualizar = useActualizar(setTareas);
+  const eliminar = useEliminar(setTareas);
 
   const valor = useMemo<ContextoTareas>(
-    () => ({ tareas, cargando, error, alternar, recargar }),
-    [tareas, cargando, error, alternar, recargar],
+    () => ({ tareas, cargando, error, alternar, recargar, crear, actualizar, eliminar }),
+    [tareas, cargando, error, alternar, recargar, crear, actualizar, eliminar],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

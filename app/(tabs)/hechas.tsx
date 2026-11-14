@@ -6,6 +6,7 @@ import { BotonNuevaTarea } from "@/components/boton-nueva-tarea";
 import { CuerpoTareas } from "@/components/cuerpo-tareas";
 import { EstadoVacio } from "@/components/estado-vacio";
 import { ListaTareas } from "@/components/lista-tareas";
+import { abrirEdicionTarea } from "@/components/navegacion";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useTareas } from "@/providers/proveedor-tareas";
@@ -27,10 +28,14 @@ export default function HechasScreen() {
 
         <CuerpoTareas cargando={cargando} error={error} onReintentar={recargar}>
           {hechas.length === 0 ? (
-            <EstadoVacio onNuevaTarea={abrirNuevaTarea} />
+            <EstadoVacio mensaje="No hay tareas completadas" />
           ) : (
             <>
-              <ListaTareas secciones={secciones} onAlternar={alternar} />
+              <ListaTareas
+                secciones={secciones}
+                onAlternar={alternar}
+                onEditar={(tarea) => abrirEdicionTarea(tarea.id)}
+              />
               <BotonNuevaTarea onPress={abrirNuevaTarea} />
             </>
           )}

@@ -8,6 +8,7 @@ import { CuerpoTareas } from "@/components/cuerpo-tareas";
 import { EstadoVacio } from "@/components/estado-vacio";
 import { FiltroTareas } from "@/components/filtro-tareas";
 import { ListaTareas } from "@/components/lista-tareas";
+import { abrirEdicionTarea } from "@/components/navegacion";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useTareas } from "@/providers/proveedor-tareas";
@@ -28,6 +29,8 @@ export default function PendientesScreen() {
     etiqueta: grupo.etiqueta,
     data: grupo.tareas,
   }));
+  const mensajeVacio =
+    pendientes.length === 0 ? "No hay tareas todavía" : "No hay tareas en este filtro";
 
   return (
     <ThemedView style={styles.pantalla}>
@@ -37,10 +40,14 @@ export default function PendientesScreen() {
 
         <CuerpoTareas cargando={cargando} error={error} onReintentar={recargar}>
           {visibles.length === 0 ? (
-            <EstadoVacio onNuevaTarea={abrirNuevaTarea} />
+            <EstadoVacio mensaje={mensajeVacio} onNuevaTarea={abrirNuevaTarea} />
           ) : (
             <>
-              <ListaTareas secciones={secciones} onAlternar={alternar} />
+              <ListaTareas
+                secciones={secciones}
+                onAlternar={alternar}
+                onEditar={(tarea) => abrirEdicionTarea(tarea.id)}
+              />
               <BotonNuevaTarea onPress={abrirNuevaTarea} />
             </>
           )}

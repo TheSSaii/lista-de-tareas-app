@@ -38,9 +38,10 @@ function etiquetaBoton(tarea: Tarea): string {
 type Props = {
   tarea: Tarea;
   onAlternar: (tarea: Tarea) => void;
+  onEditar: (tarea: Tarea) => void;
 };
 
-export function TareaItem({ tarea, onAlternar }: Props) {
+export function TareaItem({ tarea, onAlternar, onEditar }: Props) {
   const tema = useTheme();
   const vencida = !tarea.completada && estaVencida(tarea);
   const detalles = `Prioridad ${NOMBRES_PRIORIDAD[tarea.prioridad]} · ${formatearFecha(tarea.vence_en)}`;
@@ -69,14 +70,24 @@ export function TareaItem({ tarea, onAlternar }: Props) {
         {detalles}
       </ThemedText>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={etiquetaBoton(tarea)}
-        onPress={() => onAlternar(tarea)}
-        style={[styles.boton, { borderColor: tema.textSecondary }]}
-      >
-        <ThemedText type="smallBold">{tarea.completada ? "Desmarcar" : "Completar"}</ThemedText>
-      </Pressable>
+      <View style={styles.acciones}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={etiquetaBoton(tarea)}
+          onPress={() => onAlternar(tarea)}
+          style={[styles.boton, { borderColor: tema.textSecondary }]}
+        >
+          <ThemedText type="smallBold">{tarea.completada ? "Desmarcar" : "Completar"}</ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Editar tarea: ${tarea.titulo}`}
+          onPress={() => onEditar(tarea)}
+          style={[styles.boton, { borderColor: tema.textSecondary }]}
+        >
+          <ThemedText type="smallBold">Editar</ThemedText>
+        </Pressable>
+      </View>
     </ThemedView>
   );
 }
@@ -106,6 +117,10 @@ const styles = StyleSheet.create({
   },
   insignia: {
     color: COLOR_ALERTA,
+  },
+  acciones: {
+    flexDirection: "row",
+    gap: 8,
   },
   boton: {
     alignSelf: "flex-start",

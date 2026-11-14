@@ -12,9 +12,10 @@ export type SeccionTareas = {
 type Props = {
   secciones: SeccionTareas[];
   onAlternar: (tarea: Tarea) => void;
+  onEditar: (tarea: Tarea) => void;
 };
 
-export function ListaTareas({ secciones, onAlternar }: Props) {
+export function ListaTareas({ secciones, onAlternar, onEditar }: Props) {
   return (
     <SectionList
       style={styles.lista}
@@ -25,7 +26,9 @@ export function ListaTareas({ secciones, onAlternar }: Props) {
           {section.etiqueta}
         </ThemedText>
       )}
-      renderItem={({ item }) => <TareaItem tarea={item} onAlternar={onAlternar} />}
+      renderItem={({ item }) => (
+        <TareaItem tarea={item} onAlternar={onAlternar} onEditar={onEditar} />
+      )}
       ItemSeparatorComponent={() => <View style={styles.separador} />}
       contentContainerStyle={styles.contenido}
       stickySectionHeadersEnabled={false}

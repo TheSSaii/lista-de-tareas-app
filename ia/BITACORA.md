@@ -113,3 +113,37 @@ Formato: propósito · evidencia · validación · decisión.
 - **Decisión:** el doble de base de datos vive en `src/testing/base-falsa.ts`, fuera de los
   directorios con umbral de cobertura, para no duplicarlo entre pruebas.
 - **Pendiente:** commit y push a cargo del humano.
+
+## 2026-11-14 · Hito 3B · Rutas, lista y estado compartido
+- **Propósito:** estructura de rutas de la sección 3 (pestañas Pendientes y Hechas) y
+  listas conectadas a SQLite, sin formularios ni gestos.
+- **Evidencia:** `app/(tabs)/`, `app/tarea/nueva.tsx` (stub), `src/providers/proveedor-tareas.tsx`,
+  `src/db/base-sesion.ts`. 65/65 pruebas; `npm run check` y `npm run build` en verde.
+- **Decisión:** el proveedor es la única puerta a la base; ninguna pantalla importa
+  `expo-sqlite` ni el repositorio.
+- **Decisión:** `app/tarea/nueva.tsx` se crea como stub porque `.expo/types` lo genera
+  `expo start` (no `expo export`), y sin la ruta el botón llevaría a un 404 y typedRoutes
+  fallaría al arrancar el servidor de desarrollo.
+- **Corregido en revisión:** `expo export --platform web` fallaba al importar `expo-sqlite`
+  (Metro no resuelve `wa-sqlite.wasm`). Se añadió `src/db/abrir.web.ts`: en web la base
+  no se abre y el error es explícito; en nativo se usa `abrir.ts`. Verificado con una ruta
+  de prueba: el export vuelve a salir en verde.
+
+## 2026-11-14 · Hito 3C · Formularios y CRUD completo
+- **Propósito:** crear, editar y eliminar tareas desde el dispositivo (RF-01 y RF-02).
+- **Evidencia:** `src/components/formulario-tarea.tsx` y `campo-fecha.tsx` (presentacionales),
+  `app/tarea/nueva.tsx`, `app/tarea/[id].tsx`, `crear`/`actualizar`/`eliminar` en el
+  proveedor. 69/69 pruebas en 12 suites; `npm run check` y `npm run build` en verde.
+- **Validación:** prueba del formulario con título vacío y sin prioridad: aparecen los dos
+  mensajes por campo sin abrir SQLite. Prueba del proveedor: `eliminar(1)` vacía el estado
+  y ejecuta el DELETE.
+- **Decisión:** los valores del formulario usan `Date | null` y solo se convierten a ISO en
+  el borde (`entradaDesdeValores`); la UI nunca mezcla formatos de persistencia.
+- **Decisión:** el formulario no valida; pinta los `errores` que devuelve el servicio, y si
+  no hay errores por campo muestra el `error` general.
+- **Decisión:** se añadió el botón «Editar» en cada tarjeta para que `tarea/[id]` sea
+  alcanzable; sin él la ruta quedaría muerta y la «U» de CRUD no se podría demostrar.
+- **Límite conocido:** `@react-native-community/datetimepicker` no tiene implementación web;
+  la exportación web compila, pero el selector solo funciona en dispositivo.
+- **Corrección menor:** el título se guarda con `trim()` para no persistir espacios sobrantes.
+- **Pendiente:** commit y push a cargo del humano.
