@@ -21,12 +21,13 @@ export type ErroresTarea = Partial<Record<"titulo" | "prioridad" | "vence_en", s
 const TITULO_MINIMO = 3;
 const TITULO_MAXIMO = 100;
 const PATRON_SOLO_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
+const MS_POR_DIA = 86_400_000;
 
 /**
  * Convierte `vence_en` a Date. Las fechas sin hora se interpretan a
  * medianoche LOCAL para no desplazarlas al día anterior en husos negativos.
  */
-function aFecha(venceEn: string): Date | null {
+export function aFecha(venceEn: string): Date | null {
   const partes = PATRON_SOLO_FECHA.exec(venceEn);
   if (partes === null) {
     const fecha = new Date(venceEn);
@@ -41,11 +42,36 @@ function aFecha(venceEn: string): Date | null {
   return esFechaReal ? fecha : null;
 }
 
-function inicioDelDia(ahora: Date): Date {
+/**
+ * Suma un día conservando el formato de entrada: `YYYY-MM-DD` o ISO 8601.
+ * Una fecha inválida es un error de datos, no un caso silencioso.
+ */
+export function sumarUnDia(venceEn: string): string {
+  const fecha = aFecha(venceEn);
+  if (fecha === null) {
+    throw new Error("La fecha de vencimiento no es válida.");
+  }
+
+  if (PATRON_SOLO_FECHA.test(venceEn)) {
+    const siguiente = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1);
+    return formatearSoloFecha(siguiente);
+  }
+
+  return new Date(fecha.getTime() + MS_POR_DIA).toISOString();
+}
+
+function formatearSoloFecha(fecha: Date): string {
+  const anio = String(fecha.getFullYear()).padStart(4, "0");
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+
+export function inicioDelDia(ahora: Date): Date {
   return new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
 }
 
-function esPrioridadValida(prioridad: number): prioridad is Prioridad {
+export function esPrioridadValida(prioridad: number): prioridad is Prioridad {
   return Number.isInteger(prioridad) && prioridad >= 1 && prioridad <= 3;
 }
 

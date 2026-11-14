@@ -3,6 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   estaVencida,
   ordenarTareas,
+  sumarUnDia,
   type Tarea,
   validarTarea,
   type EntradaValidable,
@@ -187,6 +188,21 @@ describe("ordenarTareas: fechas y estabilidad", () => {
     const tarea = crearTarea({ vence_en: "2026-11-15" });
     expect(estaVencida(tarea, new Date(2026, 10, 15, 12))).toBe(false);
     expect(estaVencida(tarea, new Date(2026, 10, 20, 12))).toBe(true);
+  });
+});
+
+describe("sumarUnDia", () => {
+  it("avanza un día conservando el formato solo-fecha", () => {
+    expect(sumarUnDia("2026-11-30")).toBe("2026-12-01");
+  });
+
+  it("avanza un día conservando el ISO", () => {
+    expect(sumarUnDia("2026-11-30T10:00:00.000Z")).toBe("2026-12-01T10:00:00.000Z");
+  });
+
+  it("lanza un error con una fecha inválida", () => {
+    expect(() => sumarUnDia("2026-02-30")).toThrow(Error);
+    expect(() => sumarUnDia("no-es-fecha")).toThrow(Error);
   });
 });
 

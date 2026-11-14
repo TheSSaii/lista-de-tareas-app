@@ -77,3 +77,39 @@ Formato: propósito · evidencia · validación · decisión.
   proviene solo de la lista interna de migraciones y se valida como entero no negativo.
   Las consultas del repositorio son todas literales con `?`.
 - **Pendiente:** commit y push a cargo del humano.
+
+## 2026-11-14 · Hito 3A · Caso corregido 2 — editar una tarea vencida
+- **Propósito:** lógica de aplicación (`tareas.servicio.ts` y `filtros.ts`) antes de las pantallas.
+- **Propuesta de la IA:** `actualizarTarea` validaba la entrada completa con `validarTarea`
+  antes de leer la fila existente.
+- **Corregido en revisión, antes de construir el formulario:** `validarTarea` rechaza todo
+  `vence_en` anterior a hoy (sección 7). Una tarea vencida tiene, por definición, fecha
+  pasada, así que la edición quedaba bloqueada: no se podía corregir el título ni la
+  prioridad de una vencida sin moverle la fecha. En el formulario (3C) habría aparecido
+  como «La fecha de vencimiento no puede ser anterior a hoy» al guardar un cambio de título.
+- **Corrección aplicada:** `actualizarTarea` lee primero la fila y solo revalida `vence_en`
+  si su valor cambió; si la fecha se mantiene, valida con `vence_en: null`. Se añadió
+  `ahora` como parámetro para pruebas deterministas.
+- **Evidencia:** «permite editar una tarea vencida sin mover la fecha» fallaba antes del
+  arreglo (`errores.vence_en`) y pasa después; «rechaza mover la fecha a una fecha pasada»
+  sigue rechazando el cambio real. `npm run check` en verde.
+- **Decisión:** el repositorio no valida nada; el servicio valida y es la única puerta de
+  escritura desde la UI.
+
+## 2026-11-14 · Hito 3A · Lógica de aplicación
+- **Propósito:** `src/services/tareas.servicio.ts` y `src/services/filtros.ts`, más
+  `sumarUnDia` en el dominio, para que las pantallas no hablen con SQL.
+- **Evidencia:** 21 pruebas nuevas (3 de `sumarUnDia`, 13 del servicio, 5 de filtros);
+  62/62 en verde.
+- **Validación:** `npm run check`; cobertura de `src/services/` 99,25 % líneas y 88,63 %
+  ramas; `tareas.servicio.ts` 96,96 % líneas.
+- **Decisión:** `posponerUnDia` devuelve `false` si la fecha guardada es corrupta y
+  `sumarUnDia` lanza porque es una función pura. El repositorio no valida `vence_en`, así
+  que un contrato `Promise<boolean>` no puede lanzar.
+- **Decisión:** «semana» = hoy + los 6 días siguientes, incluyendo siempre las vencidas.
+  «Hoy» y «Semana» nunca ocultan vencidas (RF-05).
+- **Decisión:** las tareas sin fecha o con fecha inválida solo aparecen en «Todas» y en el
+  grupo «Sin fecha» de la agrupación por día, siempre al final.
+- **Decisión:** el doble de base de datos vive en `src/testing/base-falsa.ts`, fuera de los
+  directorios con umbral de cobertura, para no duplicarlo entre pruebas.
+- **Pendiente:** commit y push a cargo del humano.
