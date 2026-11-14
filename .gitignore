@@ -33,3 +33,6 @@ ia/logs/*.log
 # Sistema
 .DS_Store
 *.log
+# Generados por Expo
+.metro-health-check*
+*.tsbuildinfo

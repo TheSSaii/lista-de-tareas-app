@@ -4,5 +4,12 @@ dist
 .expo
 .next
 package-lock.json
-ia/logs
-docs/03-lista-de-tareas.md
+ia
+docs
+.opencode
+AGENTS.md
+opencode.jsonc
+.prettierrc
+.lintstagedrc.json
+.github
+.husky

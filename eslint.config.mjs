@@ -1,9 +1,21 @@
+import expo from "eslint-config-expo/flat.js";
 import { defineConfig } from "eslint/config";
-import expo from "eslint-config-expo/flat";
 
 export default defineConfig([
   expo,
-  { ignores: ["dist/*", "coverage/*", ".expo/*", "ia/logs/*"] },
+  {
+    ignores: [
+      "dist/*",
+      "coverage/*",
+      ".expo/*",
+      "node_modules/*",
+      "android/*",
+      "ios/*",
+      "ia/**",
+      ".opencode/**",
+      ".husky/**",
+    ],
+  },
   {
     rules: {
       complexity: ["error", 10],
