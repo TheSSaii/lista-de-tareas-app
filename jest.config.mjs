@@ -1,5 +1,8 @@
 export default {
   preset: "jest-expo",
+  moduleNameMapper: {
+    "\\.css$": "<rootDir>/src/testing/estilo-falso.ts",
+  },
   testPathIgnorePatterns: ["/node_modules/", "/ia/", "/.expo/"],
   collectCoverageFrom: ["src/services/**/*.{ts,tsx}", "src/db/**/*.ts", "src/repositories/**/*.ts"],
   coverageThreshold: {
