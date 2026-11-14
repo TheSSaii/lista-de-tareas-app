@@ -21,10 +21,72 @@ export const BLOQUEOS = [
   { id: "permisos", patron: /\bchmod\s+777\b|\bchown\b/, motivo: "Cambios de permisos o propietario prohibidos." },
 ];
 
+// Escrituras del historial: no se deniegan, se piden con aprobación humana.
+export const PEDIR_PERMISO = [
+  {
+    id: "git-escritura",
+    patron: /\bgit\s+(add|commit|push|tag|merge|rebase|cherry-pick|revert|stash|reset|checkout|switch|restore)\b/,
+    motivo: "Los cambios en el historial o el árbol de Git requieren aprobación humana.",
+  },
+  {
+    id: "dependencias",
+    patron:
+      /\b(npm\s+(install|i|ci|add)\b|npx\s+expo\s+install\b|npx\s+create-expo-app\b|yarn\s+add\b|pnpm\s+add\b)/,
+    motivo: "Instalar dependencias requiere aprobación humana.",
+  },
+  {
+    id: "despliegue",
+    patron: /\b(vercel|eas)\b|\bfirebase\s+deploy\b/,
+    motivo: "Desplegar tiene efecto fuera de la máquina: requiere aprobación humana.",
+  },
+  {
+    id: "servidor-dev",
+    patron: /\bnpx\s+expo\s+start\b/,
+    motivo: "Levantar el servidor de desarrollo requiere aprobación humana.",
+  },
+];
+
 const ENV_EN_COMANDO = /(^|[\s"'=:(/\\])\.env(\.[\w.-]+)?($|[\s"'`),;|&])/i;
 const RUTA_ENV = /(^|[/\\])\.env(\.[\w.-]+)?$/i;
 const CLAVE = /\.(pem|key|p8|p12|keystore|jks)$/i;
 const CUENTA = /(firebase-adminsdk|service-?account|credenciales)/i;
+
+// Un comando encadenado ("git status && git push --force") se evalúa por segmentos: si no,
+// el `allow` de la primera parte taparía el `ask` o el `deny` de la segunda.
+const SEGMENTO = /(?:[^"'|;&]+|"[^"]*"|'[^']*')+/g;
+const SIN_COMILLAS = /"[^"]*"|'[^']*'/g;
+
+function segmentosDe(texto) {
+  return (texto.match(SEGMENTO) ?? [])
+    .map((segmento) => segmento.replace(SIN_COMILLAS, '""').trim())
+    .filter((segmento) => segmento.length > 0);
+}
+
+/** Gana lo más restrictivo de todos los segmentos: deny > ask > permitir. */
+function evaluarComando(texto) {
+  // Se comprueba sobre el texto original: si se quitara la comilla, `cat ".env"` pasaría.
+  if (ENV_EN_COMANDO.test(texto)) {
+    return niega("secreto", "El comando menciona un archivo .env: bloqueado.");
+  }
+
+  let pedir = { efecto: "permitir" };
+
+  for (const segmento of segmentosDe(texto)) {
+    for (const regla of BLOQUEOS) {
+      if (regla.patron.test(segmento)) return niega(regla.id, regla.motivo);
+    }
+    if (ENV_EN_COMANDO.test(segmento)) {
+      return niega("secreto", "El comando menciona un archivo .env: bloqueado.");
+    }
+    for (const regla of PEDIR_PERMISO) {
+      if (regla.patron.test(segmento)) {
+        pedir = { efecto: "ask", regla: regla.id, motivo: regla.motivo };
+      }
+    }
+  }
+
+  return pedir;
+}
 
 function niega(regla, motivo) {
   return { efecto: "deny", regla, motivo };
@@ -60,12 +122,8 @@ export function evaluar(accion, recursos, raiz = "") {
     }
 
     if (accion === "shell") {
-      for (const regla of BLOQUEOS) {
-        if (regla.patron.test(texto)) return niega(regla.id, regla.motivo);
-      }
-      if (ENV_EN_COMANDO.test(texto)) {
-        return niega("secreto", "El comando menciona un archivo .env: bloqueado.");
-      }
+      const veredicto = evaluarComando(texto);
+      if (veredicto.efecto !== "permitir") return veredicto;
     }
 
     if (accion === "webfetch") {

@@ -22,9 +22,9 @@ documenta la equivalencia y se demuestra que se cumplen las mismas pruebas.
 | 1 | Reglas del proyecto | La IA no conoce stack ni prohibiciones | `AGENTS.md` | Orienta, no protege |
 | 2 | Permisos de lectura/escritura | Fuga de `.env*`, `.pem`, `.key`, keystores | `permissions[read]` y `[edit]` | No cubre procesos ya lanzados |
 | 3 | Cárcel de directorios | Leer o escribir fuera del repo | `external_directory`, `../*`, `glob` | Aplica a herramientas, no a un proceso |
-| 4 | Shell | `sudo`, `rm -rf`, `curl`, `wget`, push forzado | `permissions[shell]` | No analiza el interior de un script |
+| 4 | Shell | `sudo`, `rm -rf`, `curl`, `wget`, push forzado; commits y push piden permiso | `permissions[shell]` + hook | No analiza el interior de un script |
 | 5 | Red | Exfiltración o descargas | allowlist `webfetch` + hook | No es un firewall del sistema |
-| 6 | Hook propio | Comandos que evaden las reglas | `.opencode/plugins/guard/` | Heurística de texto, no sandbox |
+| 6 | Hook propio | Comandos que evaden las reglas, incluidas escrituras de Git encadenadas | `.opencode/plugins/guard/` | Heurística de texto, no sandbox |
 | 7 | Sin secretos reales | Aunque algo falle, no hay nada que robar | Solo Vercel / Emulador | Depende de la disciplina del equipo |
 | 8 | Auditoría | Saber qué ejecutó la IA | `ia/logs/acciones-ia.log` | Registra, no previene |
 
@@ -35,12 +35,21 @@ precedencia `deny → ask → allow` de la hoja, el archivo está escrito así:
 
 1. `shell * → ask` (todo pide permiso).
 2. `allow` de inspección (`git status`, `git diff`, `npm run check`…).
-3. `ask` de acciones con efecto (`git push`, instalar dependencias, `vercel`, `eas`).
+3. `ask` de acciones con efecto (`git commit`/`push`, también encadenadas; instalar
+   dependencias, `vercel`, `eas`).
 4. **`deny` al final**.
 
 Como no existe ninguna regla `allow` después de los `deny`, ningún permiso puede abrir una
 excepción dentro de un bloqueo. El único `allow` que hubo dentro de un `deny`
 (`.env.example`) se eliminó: el archivo se versiona para humanos y la IA tampoco lo lee.
+
+El hook también devuelve `ask` para `git add`, `commit`, `push`, `merge`, `rebase`,
+`reset`, `checkout`, `switch` y `restore`, aunque vengan dentro de un comando compuesto
+tras una instrucción permitida. La evaluación es por segmentos (`&&`, `||`, `;`, `|`) y el
+filtro de `.env` se aplica al comando completo antes de segmentar, así que `cat ".env"`
+tampoco evade la regla. También piden permiso la instalación de dependencias (`npm install`,
+`npx expo install`), el despliegue (`vercel`, `eas`, `firebase deploy`) y `npx expo start`.
+`git push --force`, `git reset --hard` y `git clean -f` siguen en `deny` y se evalúan primero.
 
 ## Dominios permitidos y su justificación
 

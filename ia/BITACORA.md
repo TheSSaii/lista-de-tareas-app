@@ -147,3 +147,38 @@ Formato: propósito · evidencia · validación · decisión.
   la exportación web compila, pero el selector solo funciona en dispositivo.
 - **Corrección menor:** el título se guarda con `trim()` para no persistir espacios sobrantes.
 - **Pendiente:** commit y push a cargo del humano.
+
+## 2026-11-14 · Caso corregido 3 — hueco de aprobación en comandos Git encadenados
+- **Propósito:** impedir que `git commit` o `git push` se ejecuten sin aprobación cuando
+  viajan dentro de un comando compuesto (`git add ... && git commit ...`).
+- **Detectado por:** una prueba que se añadió al conjunto (17) y que **falló al principio**:
+  la regla `allow` de `git status *` cubría el comando entero, así que el `ask` de la segunda
+  mitad nunca llegaba a aplicarse. El mismo hueco permitía `git status && git push --force`.
+- **Evidencia:** evaluación por segmentos en `.opencode/plugins/guard/politica.mjs`
+  (separadores `&&`, `||`, `;`, `|`; gana el más restrictivo `deny` > `ask` > `permitir`),
+  rama `ask` en `.opencode/plugins/guard/index.ts`, pruebas 17–20 de
+  `ia/pruebas/politica.test.mjs` y `npm run check:ia` (20/20).
+- **Validación:** `git status && git commit` y `git add . && git push` devuelven `ask`;
+  `git push --force` y `git reset --hard` encadenados siguen devolviendo `deny`; `git status`
+  y `npm run check` siguen en `permitir`; un separador entre comillas
+  (`echo "a; curl x"`) no parte el comando ni bloquea un mensaje de commit con `;`.
+- **Decisión:** se pide permiso (`ask`), no se deniega, para conservar el flujo con aprobación
+  humana; los `deny` de fuerza/reset se evalúan antes. Se retiraron de `AGENTS.md` dos líneas
+  que presentaban `git push origin main` como comando normal y contradecían la regla de pedir permiso.
+
+## 2026-11-14 · Caso corregido 4 — alcance del `ask` y `.env` entre comillas
+- **Propósito:** que la evaluación por segmentos no abra dos huecos nuevos.
+- **Hueco 1:** el `ask` solo cubría Git. `git status && npm install paquete` devolvía
+  `permitir`, porque el `allow` de `git status *` cubre el comando entero. Se añadieron
+  reglas `ask` para instalar dependencias (`npm install/i/ci/add`, `npx expo install`,
+  `npx create-expo-app`), desplegar (`vercel`, `eas`, `firebase deploy`) y `npx expo start`.
+- **Hueco 2:** al reemplazar el contenido entre comillas para segmentar, `cat ".env.local"`
+  quedaba como `cat ""` y pasaba. Se detectó con la prueba 21 y se corrigió comprobando
+  `ENV_EN_COMANDO` sobre el comando completo antes de segmentar.
+- **Evidencia:** `.opencode/plugins/guard/politica.mjs`, `ia/pruebas/politica.test.mjs`
+  (pruebas 20–23) y `npm run check:ia` (23/23).
+- **Validación:** `git status && npm install x`, `npm run check && vercel --prod` y
+  `ls && npx expo install y` devuelven `ask`; `cat ".env.local"` devuelve `deny`;
+  `echo "a; curl x"` sigue en `permitir`.
+- **Decisión:** el `ask` se evalúa por segmento, no solo por el primer binario del comando:
+  cualquier segmento que instale, despliegue o escriba en Git pide aprobación humana.

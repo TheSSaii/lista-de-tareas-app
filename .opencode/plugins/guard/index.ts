@@ -40,6 +40,9 @@ export default {
       if (veredicto.efecto === "deny") {
         event.effect = "deny";
         event.message = `[guard:${veredicto.regla}] ${veredicto.motivo}`;
+      } else if (veredicto.efecto === "ask") {
+        event.effect = "ask";
+        event.message = `[guard:${veredicto.regla}] ${veredicto.motivo}`;
       }
     });
 

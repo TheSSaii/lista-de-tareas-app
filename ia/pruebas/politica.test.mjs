@@ -1,6 +1,6 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluar, BLOQUEOS } from "../../.opencode/plugins/guard/politica.mjs";
+import test from "node:test";
+import { BLOQUEOS, PEDIR_PERMISO, evaluar } from "../../.opencode/plugins/guard/politica.mjs";
 
 const RAIZ = "/Users/estudiante/proyecto/lista-de-tareas-app";
 const shell = (comando) => evaluar("shell", [comando], RAIZ);
@@ -70,10 +70,47 @@ test("15 · leer fuera del repo se deniega y dentro se permite", () => {
   assert.equal(leer(`${RAIZ}/src/app.ts`).efecto, "permitir");
 });
 
-test("16 · cada bloqueo tiene id y motivo", () => {
+test("16 · cada bloqueo y cada permiso tiene id y motivo", () => {
   assert.ok(BLOQUEOS.length >= 10);
-  for (const regla of BLOQUEOS) {
+  for (const regla of [...BLOQUEOS, ...PEDIR_PERMISO]) {
     assert.ok(regla.id);
     assert.ok(regla.motivo.length > 10);
   }
+});
+
+test("17 · git commit pide permiso, también dentro de un comando compuesto", () => {
+  assert.equal(shell("git commit -m x").efecto, "ask");
+  assert.equal(shell("git status && git commit -m x").efecto, "ask");
+  assert.equal(shell("git add . && git commit -m x").efecto, "ask");
+});
+
+test("18 · git push pide permiso, también dentro de un comando compuesto", () => {
+  assert.equal(shell("git push origin main").efecto, "ask");
+  assert.equal(shell("git add . && git push origin main").efecto, "ask");
+});
+
+test("19 · las escrituras destructivas siguen denegadas en comandos compuestos", () => {
+  assert.equal(shell("git status && git push --force origin main").efecto, "deny");
+  assert.equal(shell("git status && git reset --hard HEAD~1").efecto, "deny");
+});
+
+test("20 · un separador entre comillas no divide el comando", () => {
+  assert.equal(shell('echo "a; curl x"').efecto, "permitir");
+  assert.equal(shell("echo 'a && rm -rf x'").efecto, "permitir");
+  assert.equal(shell('git commit -m "a; b"').efecto, "ask");
+});
+
+test("21 · un .env entre comillas se sigue denegando", () => {
+  assert.equal(shell('cat ".env.local"').efecto, "deny");
+  assert.equal(shell("cat '.env'").efecto, "deny");
+});
+
+test("22 · instalar dependencias pide permiso también encadenado", () => {
+  assert.equal(shell("git status && npm install paquete").efecto, "ask");
+  assert.equal(shell("ls && npx expo install algo").efecto, "ask");
+});
+
+test("23 · desplegar pide permiso también encadenado", () => {
+  assert.equal(shell("npm run check && vercel --prod").efecto, "ask");
+  assert.equal(shell("npm run check && eas build").efecto, "ask");
 });
