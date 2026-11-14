@@ -50,3 +50,30 @@ Formato: propósito · evidencia · validación · decisión.
 - **Decisión (orden):** las vencidas van primero aunque tengan peor prioridad. Es una decisión de
   UX: la sección 7 solo pide «ordenar por prioridad y fecha» y no especifica este desempate.
 - **Pendiente:** commit y push a cargo del humano.
+
+## 2026-11-14 · Hito 2 · Persistencia local con expo-sqlite
+- **Propósito:** esquema de la sección 8, migraciones idempotentes, apertura con WAL y
+  claves foráneas, y CRUD parametrizado con SQL literal. Sin pantallas.
+- **Evidencia:** pruebas escritas antes del código en `src/db/__tests__/` y
+  `src/repositories/__tests__/`; el rojo inicial fue `Cannot find module` para
+  `esquema`, `migraciones`, `abrir` y `tarea.repositorio`. Después, `npm run check` en
+  verde con 41/41 pruebas (1 esquema, 6 migraciones, 1 apertura, 10 repositorio, 23 dominio).
+- **Validación:** cobertura `src/db/`: 100 % líneas/funciones/sentencias y 88,88 % ramas;
+  `src/repositories/`: 100 % en las cuatro métricas. Umbrales de 80 % añadidos a
+  `jest.config.mjs`. Typecheck, ESLint y Prettier en verde.
+- **Prueba corregida durante el rojo:** la comprobación de «actualizar no incluye id»
+  usaba `not.toContain("id")` sobre el `SET`, pero `prioridad` y `notificacion_id`
+  contienen la subcadena `id`. Se corrigió la prueba para comparar los nombres de
+  columna exactos; el SQL de producción no cambió.
+- **Decisión C3 (filas inválidas):** `filaATarea` devuelve
+  `{ ok: false, error }`; `listar` y `obtener` lanzan
+  `Error("fila de tarea inválida: id=<id>")`. No filtran en silencio.
+- **Decisión C5 (validación):** `crear` no valida; la sección 7 se aplica en
+  `src/services/tarea.ts` (`validarTarea`) y la pantalla la invocará. El repositorio solo
+  persiste datos ya validados.
+- **Decisión (actualizar):** reemplazo completo de los cinco campos editables con SQL
+  fijo; `id` solo aparece en el `WHERE` y `completada` tiene su propia función.
+- **Decisión (PRAGMA user_version):** SQLite no admite parámetros en `PRAGMA`; el número
+  proviene solo de la lista interna de migraciones y se valida como entero no negativo.
+  Las consultas del repositorio son todas literales con `?`.
+- **Pendiente:** commit y push a cargo del humano.
