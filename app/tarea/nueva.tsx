@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BotonVolver } from "@/components/boton-volver";
@@ -49,25 +49,31 @@ export default function NuevaTareaScreen() {
 
   return (
     <ThemedView style={styles.pantalla}>
-      <SafeAreaView style={styles.contenido} edges={["top"]}>
-        <ThemedText type="subtitle">Nueva tarea</ThemedText>
-        <BotonVolver />
+      <SafeAreaView style={styles.pantalla} edges={["top"]}>
+        <ScrollView
+          style={styles.pantalla}
+          contentContainerStyle={styles.contenido}
+          keyboardShouldPersistTaps="handled"
+        >
+          <ThemedText type="subtitle">Nueva tarea</ThemedText>
+          <BotonVolver />
 
-        {errorGeneral !== null && (
-          <ThemedText accessibilityRole="alert" style={styles.errorGeneral}>
-            {errorGeneral}
-          </ThemedText>
-        )}
+          {errorGeneral !== null && (
+            <ThemedText accessibilityRole="alert" style={styles.errorGeneral}>
+              {errorGeneral}
+            </ThemedText>
+          )}
 
-        <FormularioTarea
-          valores={valores}
-          errores={errores}
-          onCambiar={cambiar}
-          onGuardar={() => {
-            void guardar();
-          }}
-          guardando={guardando}
-        />
+          <FormularioTarea
+            valores={valores}
+            errores={errores}
+            onCambiar={cambiar}
+            onGuardar={() => {
+              void guardar();
+            }}
+            guardando={guardando}
+          />
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -78,10 +84,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contenido: {
-    flex: 1,
+    flexGrow: 1,
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 16,
+    paddingBottom: 32,
   },
   errorGeneral: {
     color: "#B42318",

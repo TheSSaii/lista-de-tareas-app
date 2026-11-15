@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useState, type ReactNode } from "react";
-import { Alert, Pressable, StyleSheet } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BotonVolver } from "@/components/boton-volver";
@@ -16,8 +16,14 @@ import type { ErroresTarea, Tarea } from "@/services/tarea";
 function Marco({ children }: { children: ReactNode }) {
   return (
     <ThemedView style={styles.pantalla}>
-      <SafeAreaView style={styles.contenido} edges={["top"]}>
-        {children}
+      <SafeAreaView style={styles.pantalla} edges={["top"]}>
+        <ScrollView
+          style={styles.pantalla}
+          contentContainerStyle={styles.contenido}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -164,10 +170,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contenido: {
-    flex: 1,
+    flexGrow: 1,
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 16,
+    paddingBottom: 32,
   },
   errorGeneral: {
     color: "#B42318",

@@ -8,6 +8,8 @@ import { ThemedText } from "./themed-text";
 type Selector = "fecha" | "hora" | null;
 type SelectorAbierto = Exclude<Selector, null>;
 
+const ES_IOS = Platform.OS === "ios";
+
 type Props = {
   valor: Date | null;
   onCambiar: (fecha: Date | null) => void;
@@ -53,6 +55,19 @@ function conHora(base: Date, elegida: Date): Date {
 }
 
 function aplicarCambio(selector: SelectorAbierto, valor: Date | null, elegida: Date): Date {
+  // En iOS el selector es datetime: la fecha elegida ya trae la hora.
+  if (ES_IOS) {
+    return new Date(
+      elegida.getFullYear(),
+      elegida.getMonth(),
+      elegida.getDate(),
+      elegida.getHours(),
+      elegida.getMinutes(),
+      0,
+      0,
+    );
+  }
+
   if (selector === "hora" && valor !== null) {
     return conHora(valor, elegida);
   }
@@ -89,13 +104,21 @@ function BotonesVencimiento({
   onQuitar: () => void;
 }) {
   if (valor === null) {
-    return <BotonFecha etiqueta="Añadir fecha" onPress={() => onAbrir("fecha")} />;
+    return (
+      <BotonFecha
+        etiqueta={ES_IOS ? "Elegir fecha y hora" : "Añadir fecha"}
+        onPress={() => onAbrir("fecha")}
+      />
+    );
   }
 
   return (
     <View style={styles.botones}>
-      <BotonFecha etiqueta="Cambiar fecha" onPress={() => onAbrir("fecha")} />
-      <BotonFecha etiqueta="Cambiar hora" onPress={() => onAbrir("hora")} />
+      <BotonFecha
+        etiqueta={ES_IOS ? "Cambiar fecha y hora" : "Cambiar fecha"}
+        onPress={() => onAbrir("fecha")}
+      />
+      {!ES_IOS && <BotonFecha etiqueta="Cambiar hora" onPress={() => onAbrir("hora")} />}
       <BotonFecha etiqueta="Quitar fecha" onPress={onQuitar} />
     </View>
   );
@@ -112,23 +135,32 @@ function SelectorVencimiento({
   onCambiar: (evento: DateTimePickerEvent, elegida?: Date) => void;
   onCerrar: () => void;
 }) {
+  const modo = ES_IOS ? "datetime" : selector === "fecha" ? "date" : "time";
+
   return (
     <>
       <DateTimePicker
-        accessibilityLabel={selector === "fecha" ? "Selector de fecha" : "Selector de hora"}
+        accessibilityLabel={
+          ES_IOS
+            ? "Selector de fecha y hora"
+            : selector === "fecha"
+              ? "Selector de fecha"
+              : "Selector de hora"
+        }
         value={valor ?? fechaInicial()}
-        mode={selector === "fecha" ? "date" : "time"}
+        mode={modo}
+        display={ES_IOS ? "spinner" : "default"}
+        locale="es-CO"
         is24Hour
         onChange={onCambiar}
       />
-      {Platform.OS === "ios" && <BotonFecha etiqueta="Listo" onPress={onCerrar} />}
+      {ES_IOS && <BotonFecha etiqueta="Listo" onPress={onCerrar} />}
     </>
   );
 }
 
 export function CampoFecha({ valor, onCambiar, error }: Props) {
   const [selector, setSelector] = useState<Selector>(null);
-
   function cambiar(evento: DateTimePickerEvent, elegida?: Date) {
     if (evento.type === "dismissed") {
       setSelector(null);
@@ -140,11 +172,10 @@ export function CampoFecha({ valor, onCambiar, error }: Props) {
     }
 
     onCambiar(aplicarCambio(selector, valor, elegida));
-    if (Platform.OS !== "ios") {
+    if (!ES_IOS) {
       setSelector(null);
     }
   }
-
   return (
     <View style={styles.campo}>
       <ThemedText type="smallBold">Vencimiento</ThemedText>
@@ -152,7 +183,14 @@ export function CampoFecha({ valor, onCambiar, error }: Props) {
         {etiquetaFecha(valor)}
       </ThemedText>
 
-      <BotonesVencimiento valor={valor} onAbrir={setSelector} onQuitar={() => onCambiar(null)} />
+      <BotonesVencimiento
+        valor={valor}
+        onAbrir={setSelector}
+        onQuitar={() => {
+          setSelector(null);
+          onCambiar(null);
+        }}
+      />
 
       {selector !== null && (
         <SelectorVencimiento
