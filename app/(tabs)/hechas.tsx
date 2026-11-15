@@ -1,7 +1,8 @@
 import { router } from "expo-router";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BarraDeshacer } from "@/components/barra-deshacer";
 import { BotonNuevaTarea } from "@/components/boton-nueva-tarea";
 import { CuerpoTareas } from "@/components/cuerpo-tareas";
 import { EstadoVacio } from "@/components/estado-vacio";
@@ -16,7 +17,8 @@ function abrirNuevaTarea() {
 }
 
 export default function HechasScreen() {
-  const { tareas, cargando, error, alternar, recargar } = useTareas();
+  const { tareas, cargando, error, alternar, posponer, deshacer, puedeDeshacer, recargar } =
+    useTareas();
 
   const hechas = tareas.filter((tarea) => tarea.completada);
   const secciones = hechas.length === 0 ? [] : [{ etiqueta: "Completadas", data: hechas }];
@@ -24,7 +26,10 @@ export default function HechasScreen() {
   return (
     <ThemedView style={styles.pantalla}>
       <SafeAreaView style={styles.contenido} edges={["top"]}>
-        <ThemedText type="subtitle">Hechas</ThemedText>
+        <View style={styles.encabezado}>
+          <ThemedText type="subtitle">Hechas</ThemedText>
+          <BarraDeshacer puedeDeshacer={puedeDeshacer} onDeshacer={deshacer} />
+        </View>
 
         <CuerpoTareas cargando={cargando} error={error} onReintentar={recargar}>
           {hechas.length === 0 ? (
@@ -34,6 +39,7 @@ export default function HechasScreen() {
               <ListaTareas
                 secciones={secciones}
                 onAlternar={alternar}
+                onPosponer={posponer}
                 onEditar={(tarea) => abrirEdicionTarea(tarea.id)}
               />
               <BotonNuevaTarea onPress={abrirNuevaTarea} />
@@ -54,5 +60,11 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 16,
+  },
+  encabezado: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
   },
 });

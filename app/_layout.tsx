@@ -1,7 +1,8 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import { StyleSheet, useColorScheme } from "react-native";
+import { StyleSheet, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import { AvisoGlobal } from "@/components/aviso-tareas";
 import { ProveedorTareas } from "@/providers/proveedor-tareas";
 
 export default function RootLayout() {
@@ -11,7 +12,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.raiz}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <ProveedorTareas>
-          <Stack screenOptions={{ headerShown: false }} />
+          <View style={styles.raiz}>
+            <Stack screenOptions={{ headerShown: false }} />
+            <AvisoGlobal />
+          </View>
         </ProveedorTareas>
       </ThemeProvider>
     </GestureHandlerRootView>

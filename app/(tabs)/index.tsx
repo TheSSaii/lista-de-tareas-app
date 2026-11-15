@@ -1,9 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BarraDeshacer } from "@/components/barra-deshacer";
 import { BotonNuevaTarea } from "@/components/boton-nueva-tarea";
+import { ControlSacudida } from "@/components/control-sacudida";
 import { CuerpoTareas } from "@/components/cuerpo-tareas";
 import { EstadoVacio } from "@/components/estado-vacio";
 import { FiltroTareas } from "@/components/filtro-tareas";
@@ -12,6 +14,7 @@ import { abrirEdicionTarea } from "@/components/navegacion";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useTareas } from "@/providers/proveedor-tareas";
+import { useSacudida } from "@/sensors/use-sacudida";
 import { agruparPorDia, filtrarTareas } from "@/services/filtros";
 import type { Filtro } from "@/services/filtros";
 
@@ -20,8 +23,11 @@ function abrirNuevaTarea() {
 }
 
 export default function PendientesScreen() {
-  const { tareas, cargando, error, alternar, recargar } = useTareas();
+  const { tareas, cargando, error, alternar, posponer, deshacer, puedeDeshacer, recargar } =
+    useTareas();
   const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [agitarActivo, setAgitarActivo] = useState(false);
+  const { estado: estadoSacudida } = useSacudida(agitarActivo, deshacer);
 
   const pendientes = tareas.filter((tarea) => !tarea.completada);
   const visibles = filtrarTareas(pendientes, filtro);
@@ -35,8 +41,16 @@ export default function PendientesScreen() {
   return (
     <ThemedView style={styles.pantalla}>
       <SafeAreaView style={styles.contenido} edges={["top"]}>
-        <ThemedText type="subtitle">Pendientes</ThemedText>
+        <View style={styles.encabezado}>
+          <ThemedText type="subtitle">Pendientes</ThemedText>
+          <BarraDeshacer puedeDeshacer={puedeDeshacer} onDeshacer={deshacer} />
+        </View>
         <FiltroTareas valor={filtro} onCambiar={setFiltro} />
+        <ControlSacudida
+          activo={agitarActivo}
+          estado={estadoSacudida}
+          onCambiar={setAgitarActivo}
+        />
 
         <CuerpoTareas cargando={cargando} error={error} onReintentar={recargar}>
           {visibles.length === 0 ? (
@@ -46,6 +60,7 @@ export default function PendientesScreen() {
               <ListaTareas
                 secciones={secciones}
                 onAlternar={alternar}
+                onPosponer={posponer}
                 onEditar={(tarea) => abrirEdicionTarea(tarea.id)}
               />
               <BotonNuevaTarea onPress={abrirNuevaTarea} />
@@ -66,5 +81,11 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 16,
+  },
+  encabezado: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
   },
 });

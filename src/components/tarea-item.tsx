@@ -38,11 +38,56 @@ function etiquetaBoton(tarea: Tarea): string {
 type Props = {
   tarea: Tarea;
   onAlternar: (tarea: Tarea) => void;
+  onPosponer: (tarea: Tarea) => void;
   onEditar: (tarea: Tarea) => void;
 };
 
-export function TareaItem({ tarea, onAlternar, onEditar }: Props) {
+function BotonAccion({
+  etiqueta,
+  texto,
+  onPress,
+}: {
+  etiqueta: string;
+  texto: string;
+  onPress: () => void;
+}) {
   const tema = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+      onPress={onPress}
+      style={[styles.boton, { borderColor: tema.textSecondary }]}
+    >
+      <ThemedText type="smallBold">{texto}</ThemedText>
+    </Pressable>
+  );
+}
+
+function AccionesTarea({ tarea, onAlternar, onPosponer, onEditar }: Props) {
+  return (
+    <View style={styles.acciones}>
+      <BotonAccion
+        etiqueta={etiquetaBoton(tarea)}
+        texto={tarea.completada ? "Desmarcar" : "Completar"}
+        onPress={() => onAlternar(tarea)}
+      />
+      <BotonAccion
+        etiqueta={`Posponer un día: ${tarea.titulo}`}
+        texto="Posponer"
+        onPress={() => onPosponer(tarea)}
+      />
+      <BotonAccion
+        etiqueta={`Editar tarea: ${tarea.titulo}`}
+        texto="Editar"
+        onPress={() => onEditar(tarea)}
+      />
+    </View>
+  );
+}
+
+export function TareaItem({ tarea, onAlternar, onPosponer, onEditar }: Props) {
   const vencida = !tarea.completada && estaVencida(tarea);
   const detalles = `Prioridad ${NOMBRES_PRIORIDAD[tarea.prioridad]} · ${formatearFecha(tarea.vence_en)}`;
 
@@ -70,24 +115,12 @@ export function TareaItem({ tarea, onAlternar, onEditar }: Props) {
         {detalles}
       </ThemedText>
 
-      <View style={styles.acciones}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={etiquetaBoton(tarea)}
-          onPress={() => onAlternar(tarea)}
-          style={[styles.boton, { borderColor: tema.textSecondary }]}
-        >
-          <ThemedText type="smallBold">{tarea.completada ? "Desmarcar" : "Completar"}</ThemedText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Editar tarea: ${tarea.titulo}`}
-          onPress={() => onEditar(tarea)}
-          style={[styles.boton, { borderColor: tema.textSecondary }]}
-        >
-          <ThemedText type="smallBold">Editar</ThemedText>
-        </Pressable>
-      </View>
+      <AccionesTarea
+        tarea={tarea}
+        onAlternar={onAlternar}
+        onPosponer={onPosponer}
+        onEditar={onEditar}
+      />
     </ThemedView>
   );
 }
@@ -120,6 +153,7 @@ const styles = StyleSheet.create({
   },
   acciones: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   boton: {

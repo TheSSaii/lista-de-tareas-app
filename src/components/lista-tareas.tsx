@@ -1,7 +1,7 @@
 import { SectionList, StyleSheet, View } from "react-native";
 
 import type { Tarea } from "../services/tarea";
-import { TareaItem } from "./tarea-item";
+import { TareaDeslizable } from "./tarea-deslizable";
 import { ThemedText } from "./themed-text";
 
 export type SeccionTareas = {
@@ -12,10 +12,11 @@ export type SeccionTareas = {
 type Props = {
   secciones: SeccionTareas[];
   onAlternar: (tarea: Tarea) => void;
+  onPosponer: (tarea: Tarea) => void;
   onEditar: (tarea: Tarea) => void;
 };
 
-export function ListaTareas({ secciones, onAlternar, onEditar }: Props) {
+export function ListaTareas({ secciones, onAlternar, onPosponer, onEditar }: Props) {
   return (
     <SectionList
       style={styles.lista}
@@ -27,7 +28,12 @@ export function ListaTareas({ secciones, onAlternar, onEditar }: Props) {
         </ThemedText>
       )}
       renderItem={({ item }) => (
-        <TareaItem tarea={item} onAlternar={onAlternar} onEditar={onEditar} />
+        <TareaDeslizable
+          tarea={item}
+          onAlternar={onAlternar}
+          onPosponer={onPosponer}
+          onEditar={onEditar}
+        />
       )}
       ItemSeparatorComponent={() => <View style={styles.separador} />}
       contentContainerStyle={styles.contenido}
