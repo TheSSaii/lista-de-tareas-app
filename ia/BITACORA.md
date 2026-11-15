@@ -182,3 +182,42 @@ Formato: propósito · evidencia · validación · decisión.
   `echo "a; curl x"` sigue en `permitir`.
 - **Decisión:** el `ask` se evalúa por segmento, no solo por el primer binario del comando:
   cualquier segmento que instale, despliegue o escriba en Git pide aprobación humana.
+
+## 2026-11-15 · Hito 4 · Gestos, notificaciones locales y sacudida
+- **Propósito:** cumplir las capacidades del dispositivo sin cambiar el esquema de la
+  sección 8 ni tocar la API: deslizar para completar/posponer, recordatorio local 30
+  minutos antes y deshacer con el acelerómetro.
+- **Evidencia:** `src/services/recordatorio.ts`, `notificaciones.ts`,
+  `recordatorios.servicio.ts`, `src/providers/use-acciones-tareas.ts`,
+  `src/providers/proveedor-tareas.tsx`, `src/components/tarea-deslizable.tsx`,
+  `aviso-tareas.tsx`, `barra-deshacer.tsx`, `control-sacudida.tsx`,
+  `src/sensors/use-sacudida.ts` y sus pruebas. `jest.setup.ts` centraliza los mocks
+  de `expo-notifications`, `expo-sensors`, `react-native-reanimated` y
+  `react-native-gesture-handler`; `jest.config.mjs` añade el resolver de Reanimated,
+  el setup y el umbral de `src/sensors/`.
+- **Validación:** `npm run check` (typecheck, ESLint, Prettier y cobertura),
+  `npm run check:ia` (23/23) y `npm run build` (export web) en verde. La cobertura
+  de `src/sensors/` queda por encima del 80 %. No se verificó en dispositivo físico:
+  permisos, canal Android, sacudida y notificación real quedan pendientes de la
+  matriz manual.
+- **Decisión (plugins):** se verificó que `expo-sensors` 58.0.5 incluye
+  `app.plugin.js`/`withSensors`; por eso se declara como plugin con
+  `motionPermission`, además de `expo-notifications`. No se añadió `expo-location`.
+- **Decisión (enum):** el enum correcto es `SchedulableTriggerInputTypes.DATE`,
+  no `ScheduledTriggerInputTypes.DATE`; el adaptador y el mock usan el nombre real.
+- **Decisión (fecha sin hora):** `aFecha()` sigue interpretando `YYYY-MM-DD` como
+  medianoche para vencimiento/orden, pero el recordatorio normaliza esa fecha a las
+  09:00 locales y avisa 30 minutos antes. Está cubierto por pruebas; el formulario
+  sigue enviando ISO con hora.
+- **Decisión (deshacer):** profundidad 1; cubre completar/desmarcar, posponer y
+  editar. Crear y eliminar quedan fuera porque restaurar una fila eliminada exigiría
+  borrado lógico o reinserción con el mismo `id`. El botón «Deshacer» está siempre
+  visible y se deshabilita si no hay acción.
+- **Decisión (permisos):** notificaciones se piden al guardar una tarea con fecha,
+  nunca al arrancar; movimiento se pide al encender «Agitar para deshacer». Si se
+  deniega, la tarea se guarda y el aviso se muestra con `accessibilityRole="alert"`.
+- **Decisión (`notificacion_id`):** sale de `EntradaTarea`; `actualizarTarea` conserva
+  el id existente y solo el servicio de recordatorios lo programa, cancela o limpia.
+- **Commits locales:** `2b44b2e` (recordatorios) y `6591579` (gestos, deshacer y
+  sacudida); el push queda a cargo del humano.
+- **Pendiente:** matriz manual en dispositivos físicos y development build.
