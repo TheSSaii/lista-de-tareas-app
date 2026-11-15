@@ -3,6 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import { crearBaseFalsa, fila } from "../../testing/base-falsa";
 import {
   actualizar,
+  actualizarNotificacion,
   crear,
   type DatosTarea,
   eliminar,
@@ -193,5 +194,26 @@ describe("marcarCompletada", () => {
     expect(registro.ejecuciones[0]?.sql).toBe("UPDATE tarea SET completada = ? WHERE id = ?");
     expect(registro.ejecuciones[0]?.parametros).toEqual([1, 3]);
     expect(registro.ejecuciones[1]?.parametros).toEqual([0, 3]);
+  });
+});
+
+describe("actualizarNotificacion", () => {
+  it("actualiza solo la columna notificacion_id con parámetros ordenados", async () => {
+    const { db, registro } = crearBaseFalsa({ changes: 1 });
+
+    const actualizada = await actualizarNotificacion(db, 4, "notificacion-9");
+
+    expect(actualizada).toBe(true);
+    expect(registro.ejecuciones[0]?.sql).toBe("UPDATE tarea SET notificacion_id = ? WHERE id = ?");
+    expect(registro.ejecuciones[0]?.parametros).toEqual(["notificacion-9", 4]);
+  });
+
+  it("devuelve false si la fila no existe y permite borrar el id", async () => {
+    const { db, registro } = crearBaseFalsa({ changes: 0 });
+
+    const actualizada = await actualizarNotificacion(db, 99, null);
+
+    expect(actualizada).toBe(false);
+    expect(registro.ejecuciones[0]?.parametros).toEqual([null, 99]);
   });
 });

@@ -35,6 +35,13 @@
       ],
       "expo-sqlite",
       "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Permite usar el acelerómetro para deshacer la última acción al agitar el teléfono."
+        }
+      ],
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

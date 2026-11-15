@@ -16,11 +16,11 @@ export type EntradaTarea = {
   descripcion: string | null;
   prioridad: number;
   vence_en: string | null;
-  notificacion_id: string | null;
 };
 
 export type ResultadoGuardado =
-  { ok: true; tarea: Tarea } | { ok: false; errores: ErroresTarea; error?: string };
+  | { ok: true; tarea: Tarea; aviso?: string }
+  | { ok: false; errores: ErroresTarea; error?: string; aviso?: string };
 
 const TAREA_INEXISTENTE = "La tarea no existe.";
 
@@ -38,7 +38,7 @@ function datosDesdeEntrada(entrada: EntradaTarea): DatosTarea {
     descripcion: entrada.descripcion,
     prioridad: entrada.prioridad,
     vence_en: entrada.vence_en,
-    notificacion_id: entrada.notificacion_id,
+    notificacion_id: null,
   };
 }
 
@@ -112,7 +112,7 @@ export async function actualizarTarea(
     return { ok: false, errores };
   }
 
-  const datos = datosDesdeEntrada(entrada);
+  const datos = { ...datosDesdeEntrada(entrada), notificacion_id: existente.notificacion_id };
   await actualizar(db, id, datos);
   return { ok: true, tarea: { ...existente, ...datos } };
 }
@@ -123,20 +123,20 @@ export async function alternarCompletada(db: BaseDeDatos, tarea: Tarea): Promise
   return { ...tarea, completada };
 }
 
-export async function posponerUnDia(db: BaseDeDatos, tarea: Tarea): Promise<boolean> {
+export async function posponerUnDia(db: BaseDeDatos, tarea: Tarea): Promise<Tarea | null> {
   if (tarea.vence_en === null) {
-    return false;
+    return null;
   }
 
   let venceEn: string;
   try {
     venceEn = sumarUnDia(tarea.vence_en);
   } catch {
-    return false;
+    return null;
   }
 
   await actualizar(db, tarea.id, datosDesdeTarea(tarea, venceEn));
-  return true;
+  return { ...tarea, vence_en: venceEn };
 }
 
 export async function eliminarTarea(db: BaseDeDatos, id: number): Promise<boolean> {

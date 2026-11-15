@@ -35,6 +35,5 @@ export function entradaDesdeValores(valores: ValoresFormulario): EntradaTarea {
     descripcion: descripcion.length === 0 ? null : descripcion,
     prioridad: valores.prioridad ?? 0,
     vence_en: valores.venceEn === null ? null : valores.venceEn.toISOString(),
-    notificacion_id: null,
   };
 }

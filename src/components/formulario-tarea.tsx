@@ -151,6 +151,9 @@ export function FormularioTarea({ valores, errores, onCambiar, onGuardar, guarda
         onCambiar={(venceEn) => onCambiar({ venceEn })}
         error={errores.vence_en}
       />
+      <ThemedText type="small" themeColor="textSecondary">
+        Si la tarea tiene fecha, se te pedirá permiso para avisarte 30 minutos antes.
+      </ThemedText>
       <BotonGuardar guardando={guardando} onPress={onGuardar} />
     </View>
   );

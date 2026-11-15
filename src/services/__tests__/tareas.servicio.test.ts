@@ -20,7 +20,6 @@ function entrada(cambios: Partial<EntradaTarea> = {}): EntradaTarea {
     descripcion: null,
     prioridad: 2,
     vence_en: null,
-    notificacion_id: null,
     ...cambios,
   };
 }
@@ -43,7 +42,6 @@ const ENTRADA_VALIDA: EntradaTarea = {
   descripcion: "Con anexos",
   prioridad: 1,
   vence_en: "2026-11-20",
-  notificacion_id: "notif-1",
 };
 
 describe("crearTarea", () => {
@@ -75,7 +73,7 @@ describe("crearTarea", () => {
         prioridad: 1,
         vence_en: "2026-11-20",
         completada: false,
-        notificacion_id: "notif-1",
+        notificacion_id: null,
       });
     }
     expect(registro.ejecuciones).toHaveLength(1);
@@ -84,7 +82,7 @@ describe("crearTarea", () => {
       "Con anexos",
       1,
       "2026-11-20",
-      "notif-1",
+      null,
     ]);
   });
 });
@@ -107,6 +105,29 @@ describe("actualizarTarea", () => {
       expect(resultado.tarea.completada).toBe(true);
     }
     expect(registro.ejecuciones[0]?.parametros).toEqual(["Título nuevo", null, 3, null, null, 5]);
+  });
+});
+
+describe("actualizarTarea · notificacion_id", () => {
+  it("conserva notificacion_id aunque la entrada no lo incluya", async () => {
+    const { db, registro } = crearBaseFalsa({
+      fila: fila({ id: 5, notificacion_id: "notif-existente" }),
+    });
+
+    const resultado = await actualizarTarea(db, 5, entrada({ titulo: "Título nuevo" }));
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.tarea.notificacion_id).toBe("notif-existente");
+    }
+    expect(registro.ejecuciones[0]?.parametros).toEqual([
+      "Título nuevo",
+      null,
+      2,
+      null,
+      "notif-existente",
+      5,
+    ]);
   });
 
   it("devuelve un error legible y errores vacíos si el id no existe", async () => {
@@ -233,31 +254,31 @@ describe("alternarCompletada", () => {
 });
 
 describe("posponerUnDia", () => {
-  it("suma un día, persiste y devuelve true", async () => {
+  it("suma un día, persiste y devuelve la tarea actualizada", async () => {
     const { db, registro } = crearBaseFalsa();
 
     const resultado = await posponerUnDia(db, tarea({ id: 4, vence_en: "2026-11-30" }));
 
-    expect(resultado).toBe(true);
+    expect(resultado?.vence_en).toBe("2026-12-01");
     expect(registro.ejecuciones).toHaveLength(1);
     expect(registro.ejecuciones[0]?.parametros[3]).toBe("2026-12-01");
   });
 
-  it("devuelve false sin ejecutar SQL si no tiene fecha", async () => {
+  it("devuelve null sin ejecutar SQL si no tiene fecha", async () => {
     const { db, registro } = crearBaseFalsa();
 
     const resultado = await posponerUnDia(db, tarea({ vence_en: null }));
 
-    expect(resultado).toBe(false);
+    expect(resultado).toBeNull();
     expect(registro.ejecuciones).toEqual([]);
   });
 
-  it("devuelve false sin ejecutar SQL si la fecha está corrupta", async () => {
+  it("devuelve null sin ejecutar SQL si la fecha está corrupta", async () => {
     const { db, registro } = crearBaseFalsa();
 
     const resultado = await posponerUnDia(db, tarea({ vence_en: "2026-02-30" }));
 
-    expect(resultado).toBe(false);
+    expect(resultado).toBeNull();
     expect(registro.ejecuciones).toEqual([]);
   });
 });

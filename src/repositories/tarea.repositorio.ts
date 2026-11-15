@@ -36,6 +36,8 @@ const SQL_ACTUALIZAR =
 
 const SQL_MARCAR_COMPLETADA = "UPDATE tarea SET completada = ? WHERE id = ?";
 
+const SQL_ACTUALIZAR_NOTIFICACION = "UPDATE tarea SET notificacion_id = ? WHERE id = ?";
+
 const SQL_ELIMINAR = "DELETE FROM tarea WHERE id = ?";
 
 function esPrioridad(valor: number): valor is Prioridad {
@@ -119,6 +121,15 @@ export async function marcarCompletada(
   completada: boolean,
 ): Promise<boolean> {
   const resultado = await db.runAsync(SQL_MARCAR_COMPLETADA, [completada ? 1 : 0, id]);
+  return resultado.changes > 0;
+}
+
+export async function actualizarNotificacion(
+  db: BaseDeDatos,
+  id: number,
+  notificacionId: string | null,
+): Promise<boolean> {
+  const resultado = await db.runAsync(SQL_ACTUALIZAR_NOTIFICACION, [notificacionId, id]);
   return resultado.changes > 0;
 }
 
