@@ -36,7 +36,38 @@
 > lógico, `notificacion_id` local, reconciliación de avisos, pruebas y matriz.
 > Implementa después de la prueba física del selector y de aprobar `expo-crypto`.
 
-Revisado el árbol actual (`HEAD 756c6a5`), `AGENTS.md`, `docs/03-lista-de-tareas.md` §9.1–9.3, `ia/BITACORA.md`, `src/db/`, `src/repositories/`, `src/services/`, `src/providers/` y `app/`. No edité archivos, no instalé nada y no ejecuté commits ni push.
+## Ajustes aplicados al feedback (2026-11-15)
+
+1. **UUID criptográfico:** se usa `Crypto.randomUUID()` de `expo-crypto`. Se
+   agregó `expo-crypto` `~58.0.8` con `npx expo install expo-crypto` y quedó en
+   `package.json`/`package-lock.json`; se elimina el generador propio y se
+   justifica la dependencia en el README.
+2. **Primer login con tareas locales:** decisión confirmada por el humano:
+   **purga tras confirmación y después de autenticarse**. Si `usuario_id` está
+   vacío y hay tareas locales, la pantalla pide confirmación; la purga la hace
+   `prepararCuenta` cuando el login/registro termina bien, antes de sincronizar.
+   Si el login falla o se cancela, las tareas locales se conservan. Queda
+   documentado en la bitácora.
+3. **Cursor y empates:** la API usa `updated_at > since`. El plan mantiene la
+   guardia de “no avance”, añade una prueba explícita y documenta el límite:
+   si una página completa de 500 items comparte el mismo `updated_at` y la API
+   no avanza, la sincronización se detiene y lo reporta; no se pierde el cursor
+   anterior. Se pedirá a la API un desempate por `id` como mejora futura.
+4. **Contrato de producción:** la Fase 0 queda verificada según lo reportado
+   (health, registro, login, refresh rotado, `/yo`, PUT completo sin
+   `notificacion_id`, GET con `items`/`servidor_ahora`/`deleted_at`, DELETE 200
+   y 404 idempotente, errores 400/401/409/404, 500 genérico). Se reduce a los
+   dobles de prueba.
+5. **Logout:** se aprueba purgar los datos locales tras confirmar si hay
+   pendientes. No queda una sesión anterior con tareas visibles.
+6. **Referencia:** el plan se escribió contra `756c6a5`; la implementación
+   parte de `b57d2ef` (fix del selector iOS) y del commit de documentación
+   posterior. Ese cambio no afecta auth/sync.
+
+Revisado el árbol actual, `AGENTS.md`, `docs/03-lista-de-tareas.md` §9.1–9.3,
+`ia/BITACORA.md`, `src/db/`, `src/repositories/`, `src/services/`,
+`src/providers/` y `app/`. No edité archivos, no instalé nada y no ejecuté
+commits ni push.
 
 ---
 
@@ -67,29 +98,31 @@ Lo que ya existe y condiciona el diseño:
 | **Refresh** | Una sola promesa compartida (*single-flight*) por servicio; cada petición reintenta **una vez** | Sin esto, varios 401 simultáneos lanzan varios refresh y rotan el refresh token varias veces |
 | **Expiración** | Guardar `expira_en` absoluto calculado con `expiraEnSeg`; no bloquear el arranque por token vencido | Un refresh proactivo introduce reloj local; el 401 sigue siendo la fuente de verdad |
 | **Migración v2** | Solo `ALTER TABLE ADD COLUMN` + backfill + índices + tabla de metadatos; sin reconstruir la tabla | Una reconstrucción de `tarea` puede perder datos o romper FKs si se hace mal |
-| **`remote_id`** | Se genera al crear localmente; filas antiguas lo reciben de forma perezosa antes del primer PUT | Evita meter generación de UUID en SQL y permite migrar datos existentes sin romperlos |
+| **`remote_id`** | Se genera con `Crypto.randomUUID()` al crear localmente; filas antiguas lo reciben de forma perezosa antes del primer PUT | Un id de Firestore y clave de idempotencia debe ser criptográfico; no se usa `Math.random` |
 | **Borrado** | Lógico: `deleted = 1`, `pending = 1`; `listar/obtener` filtran `deleted = 0` | El borrado físico impide propagar el `DELETE` y recibir tumbas del servidor |
 | **Conflicto** | Última escritura gana comparando instantes `updated_at`; subir primero y luego bajar | Comparar fechas como texto es frágil: `2026-11-01` vs ISO con hora. Se convierte a epoch |
 | **Cursor** | Tabla `sincronizacion(clave, valor)`: `usuario_id`, `tareas_since`, `ultima_sync` | No añadir columnas de sincronización a la tabla de usuario ni variables globales de módulo |
-| **Cuenta y datos locales** | Si cambia `usuario_id`, purgar tareas y cursor antes de sincronizar; al cerrar sesión, avisar si hay pendientes y purgar | Los datos de dos cuentas no deben mezclarse en la misma SQLite. Requiere confirmación de producto |
+| **Cuenta y datos locales** | Primer login con `usuario_id` vacío y tareas locales: aviso y purga solo tras confirmar. Logout: confirmar si hay pendientes y purgar | Los datos de dos cuentas no deben mezclarse en la misma SQLite y SQLite local no está cifrado |
 | **`notificacion_id`** | Nunca se serializa a la API; al aplicar cambios remotos se reconcilia la notificación local | El servidor no debe conocer IDs locales de Expo |
-| **Dependencias** | Ninguna nueva | `expo-secure-store` ya está; `fetch` y `AbortController` vienen con React Native/Expo |
+| **Dependencias** | `expo-crypto` agregado para `randomUUID()`; nada más | `expo-secure-store` ya está; `fetch` y `AbortController` vienen con React Native/Expo |
 
 ---
 
-## 3. Contrato a confirmar antes de codificar (Fase 0)
+## 3. Contrato confirmado en producción (Fase 0 verificada)
 
-La API está desplegada y probada, pero el plan no debe asumir detalles no verificados. Antes de la primera línea de código de sincronización, el humano o el dueño del repo de la API debe confirmar, sin exponer credenciales:
+Verificado el 2026-11-15:
 
-1. `PUT /api/tareas/:id`: campos aceptados, si ignora `updated_at` del cuerpo y si devuelve el documento completo.
-2. Forma exacta del item de `GET /api/tareas?since=`: `id`, `created_at`, `updated_at`, `deleted_at` y tipos.
-3. `DELETE /api/tareas/:id`: confirmar `200 { ok: true }` y `404`.
-4. Formato de error en 400/401/409/429 y si `detalles` usa `{ campo, mensaje }`.
-5. Si `expiraEnSeg` es número y si el refresh rota el `refreshToken`.
-6. Confirmar `EXPO_PUBLIC_API_URL` sin barra final y que todas las rutas sean HTTPS.
-7. Confirmar que la API descarta campos no declarados, en particular `notificacion_id`.
+- `GET /api/health` → 200.
+- Registro → 201; login → 200; refresh → 200 con `refreshToken` nuevo; `/yo` → 200.
+- `PUT /api/tareas/:id` → 200 con documento completo, sin `notificacion_id` y
+  conservando `created_at`.
+- `GET /api/tareas` → 200 con `items` y `servidor_ahora`, incluyendo `deleted_at`.
+- `DELETE /api/tareas/:id` → 200; `404` es idempotente.
+- Errores 400/401/409/404 con `{ error, detalles? }`; 500 genérico.
+- `EXPO_PUBLIC_API_URL` es pública, HTTPS y sin secretos.
 
-Si algo difiere, se ajusta solo `src/api/tareas.api.ts` y el mapeo; no se propaga a la UI.
+La Fase 0 se reduce a los dobles de prueba. Cualquier diferencia futura se
+ajusta solo en `src/api/tareas.api.ts` y el mapeo, sin propagarse a la UI.
 
 ---
 
@@ -200,7 +233,8 @@ CREATE TABLE sincronizacion (
 - `src/services/sesion.servicio.ts`.
 - `src/services/__tests__/sesion.servicio.test.ts`.
 - `src/api/__tests__/cliente-autenticado.test.ts`.
-- `src/services/id.ts` para UUID local (sin dependencias nuevas; se documenta que no es un identificador criptográfico).
+- `src/services/id.ts` como envoltorio mínimo de `Crypto.randomUUID()` de
+  `expo-crypto` (no es un generador propio; existe para inyectarlo en pruebas).
 
 **Comportamiento:**
 - Guardar y leer token, refresh token, usuario y expiración por claves separadas.
@@ -282,6 +316,11 @@ CREATE TABLE sincronizacion (
 
 2. **Bajada de cambios**
    - `GET /api/tareas?since=<cursor>` con paginación: repetir mientras la página tenga 500 items.
+   - **Límite conocido:** la API filtra con `updated_at > since`. Si una página
+     completa de 500 items no avanza el cursor (todos comparten el mismo
+     `updated_at`), la bajada se detiene, conserva el cursor anterior y reporta
+     el aviso. No se finge que se bajó todo. Mejora futura coordinada con la
+     API: desempate por `id`.
    - Guardia contra bucles: si una página no avanza el cursor, detener y reportar.
    - Aplicar por página en una transacción SQLite (`BEGIN` / `COMMIT` / `ROLLBACK`).
    - Insertar si no existe `remote_id`; actualizar si existe.
@@ -379,7 +418,7 @@ CREATE TABLE sincronizacion (
 | `cliente-autenticado.test.ts` | 401 → refresh → reintento; segundo 401 → logout; dos 401 simultáneos → un refresh |
 | `conflictos.test.ts` | remoto nuevo, remoto más nuevo, local más nuevo, empate, fechas inválidas |
 | `sincronizacion.subida.test.ts` | pendiente creado/editado/borrado; 404 idempotente; red caída conserva pendiente; `remote_id` perezoso |
-| `sincronizacion.bajada.test.ts` | insertar, actualizar, tumba, conflicto, página de 500, cursor persistido, item inválido |
+| `sincronizacion.bajada.test.ts` | insertar, actualizar, tumba, conflicto, página de 500, cursor persistido, item inválido, página sin avance de cursor |
 | `sincronizacion.test.ts` | orquestación, transacción, reconciliación de notificaciones, single-flight |
 | `proveedor-sesion.test.tsx` | sin tokens → invitado; con tokens sin red → autenticado; login; logout; purga por cambio de usuario |
 | `proveedor-tareas.test.tsx` | carga local, sync tras login, sync tras mutación, error de sync no borra lista |

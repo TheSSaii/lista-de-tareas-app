@@ -221,3 +221,52 @@ Formato: propósito · evidencia · validación · decisión.
 - **Commits locales:** `2b44b2e` (recordatorios) y `6591579` (gestos, deshacer y
   sacudida); el push queda a cargo del humano.
 - **Pendiente:** matriz manual en dispositivos físicos y development build.
+
+## 2026-11-15 · Autenticación y sincronización
+- **Propósito:** registro/login contra la API, tokens en SecureStore, refresh
+  único ante 401, migración v2 para sincronización, subida de pendientes,
+  bajada con `since`, borrado lógico y conflictos por última escritura.
+- **Evidencia:** `src/api/` (configuración, errores, HTTP, auth, tareas,
+  cliente autenticado y almacén SecureStore con shim web), `src/services/`
+  (`sesion.servicio.ts`, `cuenta.servicio.ts`, `conflictos.ts`,
+  `mapeo-tareas.ts`, `sincronizacion*.ts`), migración v2 en
+  `src/db/esquema.ts`, repositorio con campos de sincronización y borrado
+  lógico, `ProveedorSesion`, guardia de rutas, pantallas `(auth)/login`,
+  `(auth)/registro`, `app/cuenta.tsx` y estado de sincronización.
+- **Validación:** `npm run check` en verde (239/239 pruebas, cobertura global
+  94,49 % líneas y 87,17 % ramas; `src/api/` 94,27 % líneas y 85,16 % ramas;
+  `src/repositories/` 100 % líneas y 92,85 % ramas), `npm run check:ia`
+  (23/23) y `npm run build` (export web) en verde. Sin red real, sin cuentas
+  reales y sin secretos en las pruebas.
+- **Decisión (UUID):** se agregó `expo-crypto` (`~58.0.8`) con
+  `npx expo install expo-crypto` y se usa `Crypto.randomUUID()`. Se eliminó el
+  generador propio no criptográfico. `src/services/id.ts` es solo un envoltorio
+  inyectable.
+- **Decisión (primer login):** confirmado por el humano: si `usuario_id` está
+  vacío y hay tareas locales, se avisa y se purgan cuando el login/registro
+  termina **correctamente**, antes de sincronizar. Si el login falla o se
+  cancela, las tareas se conservan. No se asocian tareas viejas en silencio.
+- **Decisión (logout):** se purgan tokens y datos locales después de confirmar
+  si hay pendientes. El objetivo es que la siguiente cuenta no vea tareas de la
+  anterior en una SQLite no cifrada.
+- **Decisión (migración):** v2 solo añade columnas, backfill de `updated_at` y
+  `pending = 1`, índices y la tabla `sincronizacion`. No se reconstruye la
+  tabla ni se toca `notificacion_id`.
+- **Decisión (conflictos):** se comparan instantes, no strings. El remoto más
+  nuevo gana; un local pendiente más nuevo se conserva; una tumba remota gana
+  en empate para no resucitar tareas.
+- **Decisión (cursor):** la API usa `updated_at > since`. Si una página de 500
+  no avanza, se detiene y se informa. Queda pendiente coordinar con la API un
+  desempate por `id`.
+- **Decisión (`notificacion_id`):** se excluye con lista blanca en
+  `mapeo-tareas.ts`; las pruebas verifican que el cuerpo de `PUT` no lo
+  contiene. Los cambios remotos reconcilian la notificación local sin marcar
+  `pending`.
+- **Decisión (red):** `ErrorRed` y `ErrorTiempo` no cierran la sesión; solo un
+  401 tras el refresh o un refresh rechazado lo hacen. El refresh es
+  single-flight y cada petición reintenta una sola vez.
+- **Decisión (logout durante refresh):** si la sesión se cierra mientras hay un
+  refresh en vuelo, no se vuelve a guardar la sesión anterior.
+- **Pendiente:** matriz manual con la API real, migración sobre una base v1 en
+  dispositivo, expiración real de token, APK/EAS y verificación de SecureStore
+  en iOS/Android. Push a cargo del humano.
