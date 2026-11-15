@@ -44,6 +44,20 @@ Reinicia `npx expo start` después de crearlo o cambiarlo.
   `AsyncStorage`.
 - La app no incluye `firebaseConfig` ni credenciales de Firebase.
 
+## Capturas
+
+| Login                             | Pendientes                                        |
+| --------------------------------- | ------------------------------------------------- |
+| ![Login](docs/capturas/login.PNG) | ![Pendientes](docs/capturas/tareaspendientes.PNG) |
+
+| Nueva tarea                                  | Editar tarea                                   |
+| -------------------------------------------- | ---------------------------------------------- |
+| ![Nueva tarea](docs/capturas/creartarea.PNG) | ![Editar tarea](docs/capturas/editartarea.PNG) |
+
+| Hechas                                    | Cuenta                              |
+| ----------------------------------------- | ----------------------------------- |
+| ![Hechas](docs/capturas/tareashechas.PNG) | ![Cuenta](docs/capturas/cuenta.PNG) |
+
 ## Estructura
 
 - `app/`: rutas de Expo Router, incluidas `(auth)/login`, `(auth)/registro` y
