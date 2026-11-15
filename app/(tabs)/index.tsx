@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BarraDeshacer } from "@/components/barra-deshacer";
+import { BotonCuenta } from "@/components/boton-cuenta";
 import { BotonNuevaTarea } from "@/components/boton-nueva-tarea";
 import { ControlSacudida } from "@/components/control-sacudida";
 import { CuerpoTareas } from "@/components/cuerpo-tareas";
@@ -43,6 +44,7 @@ export default function PendientesScreen() {
       <SafeAreaView style={styles.contenido} edges={["top"]}>
         <View style={styles.encabezado}>
           <ThemedText type="subtitle">Pendientes</ThemedText>
+          <BotonCuenta />
           <BarraDeshacer puedeDeshacer={puedeDeshacer} onDeshacer={deshacer} />
         </View>
         <FiltroTareas valor={filtro} onCambiar={setFiltro} />

@@ -16,6 +16,14 @@ import { crearBaseFalsa, fila } from "../../testing/base-falsa";
 import { ProveedorTareas, useTareas } from "../proveedor-tareas";
 
 jest.mock("../../db/base-sesion", () => ({ obtenerBaseDeDatos: jest.fn() }));
+jest.mock("../proveedor-sesion", () => ({
+  useSesion: () => ({
+    estado: "autenticado",
+    usuario: { id: "uid-1", email: "persona@ejemplo.test" },
+    apiTareas: null,
+    errorConfig: null,
+  }),
+}));
 jest.mock("../../services/notificaciones", () => ({
   configurarNotificaciones: jest.fn(),
   notificadorExpo: {},

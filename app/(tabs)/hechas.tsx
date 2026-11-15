@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BarraDeshacer } from "@/components/barra-deshacer";
+import { BotonCuenta } from "@/components/boton-cuenta";
 import { BotonNuevaTarea } from "@/components/boton-nueva-tarea";
 import { CuerpoTareas } from "@/components/cuerpo-tareas";
 import { EstadoVacio } from "@/components/estado-vacio";
@@ -28,6 +29,7 @@ export default function HechasScreen() {
       <SafeAreaView style={styles.contenido} edges={["top"]}>
         <View style={styles.encabezado}>
           <ThemedText type="subtitle">Hechas</ThemedText>
+          <BotonCuenta />
           <BarraDeshacer puedeDeshacer={puedeDeshacer} onDeshacer={deshacer} />
         </View>
 

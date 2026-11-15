@@ -24,8 +24,9 @@ function datos(cambios: Partial<DatosTarea> = {}): DatosTarea {
   };
 }
 
+const AHORA = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const SQL_LISTAR =
-  "SELECT id, titulo, descripcion, prioridad, vence_en, completada, notificacion_id FROM tarea";
+  "SELECT id, titulo, descripcion, prioridad, vence_en, completada, notificacion_id FROM tarea WHERE deleted = 0";
 
 describe("filaATarea", () => {
   it("convierte completada 0 y 1 y conserva los nulls", () => {
@@ -71,12 +72,13 @@ describe("crear", () => {
         vence_en: "2026-12-01T10:00:00.000Z",
         notificacion_id: "notif-1",
       }),
+      "uuid-1",
     );
 
     const ejecucion = registro.ejecuciones[0];
     expect(ejecucion).toBeDefined();
     expect(ejecucion?.sql).toBe(
-      "INSERT INTO tarea (titulo, descripcion, prioridad, vence_en, notificacion_id) VALUES (?, ?, ?, ?, ?)",
+      `INSERT INTO tarea (titulo, descripcion, prioridad, vence_en, notificacion_id, remote_id, updated_at, pending) VALUES (?, ?, ?, ?, ?, ?, ${AHORA}, 1)`,
     );
     expect(ejecucion?.parametros).toEqual([
       "Entregar informe",
@@ -84,6 +86,7 @@ describe("crear", () => {
       1,
       "2026-12-01T10:00:00.000Z",
       "notif-1",
+      "uuid-1",
     ]);
     expect(tarea).toEqual({
       id: 7,
@@ -95,7 +98,9 @@ describe("crear", () => {
       notificacion_id: "notif-1",
     });
   });
+});
 
+describe("crear: parámetros seguros", () => {
   it("pasa un título malicioso como parámetro y no lo concatena al SQL", async () => {
     const { db, registro } = crearBaseFalsa();
     const titulo = "'; DROP TABLE tarea; --";
@@ -115,26 +120,23 @@ describe("actualizar", () => {
     await actualizar(db, 42, datos({ titulo: "Título nuevo", prioridad: 3 }));
 
     const ejecucion = registro.ejecuciones[0];
-    expect(ejecucion).toBeDefined();
-    const partes = ejecucion?.sql.split(" WHERE ") ?? [];
-    const campos = (partes[0]?.replace("UPDATE tarea SET ", "") ?? "")
-      .split(", ")
-      .map((campo) => campo.replace(" = ?", ""));
-    expect(campos).toEqual(["titulo", "descripcion", "prioridad", "vence_en", "notificacion_id"]);
-    expect(campos).not.toContain("id");
-    expect(partes[1]).toBe("id = ?");
+    expect(ejecucion?.sql).toBe(
+      `UPDATE tarea SET titulo = ?, descripcion = ?, prioridad = ?, vence_en = ?, notificacion_id = ?, updated_at = ${AHORA}, pending = 1 WHERE id = ?`,
+    );
     expect(ejecucion?.parametros).toEqual(["Título nuevo", null, 3, null, null, 42]);
   });
 });
 
 describe("eliminar", () => {
-  it("usa WHERE id = ? con el id como parámetro", async () => {
+  it("hace borrado lógico y marca el pendiente de sincronizar", async () => {
     const { db, registro } = crearBaseFalsa();
 
     await eliminar(db, 9);
 
     const ejecucion = registro.ejecuciones[0];
-    expect(ejecucion?.sql).toBe("DELETE FROM tarea WHERE id = ?");
+    expect(ejecucion?.sql).toBe(
+      `UPDATE tarea SET deleted = 1, pending = 1, updated_at = ${AHORA} WHERE id = ? AND deleted = 0`,
+    );
     expect(ejecucion?.parametros).toEqual([9]);
   });
 });
@@ -164,7 +166,7 @@ describe("obtener", () => {
 
     const consulta = registro.primeras[0];
     expect(consulta?.sql).toBe(
-      "SELECT id, titulo, descripcion, prioridad, vence_en, completada, notificacion_id FROM tarea WHERE id = ?",
+      "SELECT id, titulo, descripcion, prioridad, vence_en, completada, notificacion_id FROM tarea WHERE id = ? AND deleted = 0",
     );
     expect(consulta?.parametros).toEqual([5]);
     expect(tarea?.id).toBe(5);
@@ -191,7 +193,9 @@ describe("marcarCompletada", () => {
     await marcarCompletada(db, 3, false);
 
     expect(registro.ejecuciones).toHaveLength(2);
-    expect(registro.ejecuciones[0]?.sql).toBe("UPDATE tarea SET completada = ? WHERE id = ?");
+    expect(registro.ejecuciones[0]?.sql).toBe(
+      `UPDATE tarea SET completada = ?, updated_at = ${AHORA}, pending = 1 WHERE id = ?`,
+    );
     expect(registro.ejecuciones[0]?.parametros).toEqual([1, 3]);
     expect(registro.ejecuciones[1]?.parametros).toEqual([0, 3]);
   });

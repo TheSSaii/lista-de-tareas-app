@@ -15,7 +15,10 @@ import { HISTORIAL_VACIO, puedeDeshacer, type HistorialDeshacer } from "../servi
 import { configurarNotificaciones } from "../services/notificaciones";
 import type { Tarea } from "../services/tarea";
 import { listarTareas } from "../services/tareas.servicio";
+import type { EstadoSincronizacion } from "../services/tipos-sincronizacion";
 import { useAccionesTareas, type AccionesTareas } from "./use-acciones-tareas";
+import { useSesion } from "./proveedor-sesion";
+import { useSincronizacion } from "./use-sincronizacion";
 
 type ContextoTareas = AccionesTareas & {
   tareas: Tarea[];
@@ -25,6 +28,10 @@ type ContextoTareas = AccionesTareas & {
   puedeDeshacer: boolean;
   recargar: () => void;
   descartarAviso: () => void;
+  estadoSync: EstadoSincronizacion;
+  pendientesSync: number;
+  ultimaSync: string | null;
+  sincronizar: () => Promise<void>;
 };
 
 type EstadoTareas = Dispatch<SetStateAction<Tarea[]>>;
@@ -41,37 +48,48 @@ async function leerTareas(): Promise<Tarea[]> {
 }
 
 function useCargaInicial(
+  activo: boolean,
   setTareas: EstadoTareas,
   setCargando: EstadoBooleano,
   setError: EstadoError,
 ): void {
   useEffect(() => {
-    let activo = true;
+    if (!activo) {
+      setTareas([]);
+      setCargando(false);
+      setError(null);
+      return;
+    }
+
+    let vivo = true;
+    setCargando(true);
 
     void leerTareas()
       .then((lista) => {
-        if (!activo) return;
+        if (!vivo) return;
         setTareas(lista);
         setCargando(false);
       })
       .catch(() => {
-        if (!activo) return;
+        if (!vivo) return;
         setError(MENSAJE_CARGA);
         setCargando(false);
       });
 
     return () => {
-      activo = false;
+      vivo = false;
     };
-  }, [setTareas, setCargando, setError]);
+  }, [activo, setTareas, setCargando, setError]);
 }
 
 function useRecargar(
+  activo: boolean,
   setTareas: EstadoTareas,
   setCargando: EstadoBooleano,
   setError: EstadoError,
 ): () => void {
   return useCallback(() => {
+    if (!activo) return;
     setCargando(true);
     setError(null);
 
@@ -84,35 +102,28 @@ function useRecargar(
         setError(MENSAJE_CARGA);
         setCargando(false);
       });
-  }, [setTareas, setCargando, setError]);
+  }, [activo, setTareas, setCargando, setError]);
 }
 
-export function ProveedorTareas({ children }: { children: ReactNode }) {
-  const [tareas, setTareas] = useState<Tarea[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  const [historial, setHistorial] = useState<HistorialDeshacer>(HISTORIAL_VACIO);
+type ParametrosValor = {
+  acciones: AccionesTareas;
+  tareas: Tarea[];
+  cargando: boolean;
+  error: string | null;
+  aviso: string | null;
+  historial: HistorialDeshacer;
+  recargar: () => void;
+  descartarAviso: () => void;
+  activo: boolean;
+  sincronizacion: ReturnType<typeof useSincronizacion>;
+};
 
-  useCargaInicial(setTareas, setCargando, setError);
-  const recargar = useRecargar(setTareas, setCargando, setError);
-  const acciones = useAccionesTareas({
-    tareas,
-    setTareas,
-    setError,
-    setAviso,
-    historial,
-    setHistorial,
-  });
-  const descartarAviso = useCallback(() => {
-    setAviso(null);
-  }, []);
+function useValorTareas(parametros: ParametrosValor): ContextoTareas {
+  const { acciones, tareas, cargando, error, aviso, historial, recargar, descartarAviso } =
+    parametros;
+  const sincronizacion = parametros.sincronizacion;
 
-  useEffect(() => {
-    configurarNotificaciones();
-  }, []);
-
-  const valor = useMemo<ContextoTareas>(
+  return useMemo(
     () => ({
       ...acciones,
       tareas,
@@ -122,9 +133,69 @@ export function ProveedorTareas({ children }: { children: ReactNode }) {
       puedeDeshacer: puedeDeshacer(historial),
       recargar,
       descartarAviso,
+      estadoSync: parametros.activo ? sincronizacion.estadoSync : "inactivo",
+      pendientesSync: sincronizacion.pendientesSync,
+      ultimaSync: sincronizacion.ultimaSync,
+      sincronizar: sincronizacion.sincronizar,
     }),
-    [acciones, tareas, cargando, error, aviso, historial, recargar, descartarAviso],
+    [
+      acciones,
+      tareas,
+      cargando,
+      error,
+      aviso,
+      historial,
+      recargar,
+      descartarAviso,
+      parametros.activo,
+      sincronizacion,
+    ],
   );
+}
+
+export function ProveedorTareas({ children }: { children: ReactNode }) {
+  const { estado: estadoSesion, apiTareas } = useSesion();
+  const activo = estadoSesion === "autenticado";
+  const [tareas, setTareas] = useState<Tarea[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [historial, setHistorial] = useState<HistorialDeshacer>(HISTORIAL_VACIO);
+
+  useCargaInicial(activo, setTareas, setCargando, setError);
+  const recargar = useRecargar(activo, setTareas, setCargando, setError);
+  const sincronizacion = useSincronizacion({ activo, apiTareas, setTareas, setAviso });
+  const acciones = useAccionesTareas({
+    tareas,
+    setTareas,
+    setError,
+    setAviso,
+    historial,
+    setHistorial,
+    alCambiar: () => {
+      void sincronizacion.sincronizar();
+    },
+  });
+  const descartarAviso = useCallback(() => {
+    setAviso(null);
+  }, []);
+
+  useEffect(() => {
+    configurarNotificaciones();
+  }, []);
+
+  const valor = useValorTareas({
+    acciones,
+    tareas,
+    cargando,
+    error,
+    aviso,
+    historial,
+    recargar,
+    descartarAviso,
+    activo,
+    sincronizacion,
+  });
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

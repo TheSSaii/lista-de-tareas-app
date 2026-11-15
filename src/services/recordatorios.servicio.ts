@@ -210,6 +210,20 @@ function datosParaRestaurar(tarea: Tarea) {
   };
 }
 
+/**
+ * Reconcilia un cambio que llegó de la API. No marca `pending`: la notificación
+ * es local y el repositorio solo toca `notificacion_id`.
+ */
+export async function reconciliarRecordatorio(
+  db: BaseDeDatos,
+  tarea: Tarea,
+  notificador: Notificador,
+  ahora: Date = new Date(),
+): Promise<ResultadoProgramacion> {
+  const sinAviso = await cancelarRecordatorio(db, tarea, notificador);
+  return programarRecordatorio(db, sinAviso, notificador, ahora);
+}
+
 export async function restaurarTareaConRecordatorio(
   db: BaseDeDatos,
   anterior: Tarea,

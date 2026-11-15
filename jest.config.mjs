@@ -11,11 +11,14 @@ export default {
     "src/db/**/*.ts",
     "src/repositories/**/*.ts",
     "src/sensors/**/*.ts",
+    "src/api/**/*.ts",
+    "!src/api/**/*.web.ts",
   ],
   coverageThreshold: {
     "./src/services/": { lines: 80, functions: 80, branches: 80, statements: 80 },
     "./src/db/": { lines: 80, functions: 80, branches: 80, statements: 80 },
     "./src/repositories/": { lines: 80, functions: 80, branches: 80, statements: 80 },
     "./src/sensors/": { lines: 80, functions: 80, branches: 80, statements: 80 },
+    "./src/api/": { lines: 80, functions: 80, branches: 80, statements: 80 },
   },
 };

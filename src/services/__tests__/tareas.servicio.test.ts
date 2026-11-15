@@ -77,13 +77,15 @@ describe("crearTarea", () => {
       });
     }
     expect(registro.ejecuciones).toHaveLength(1);
-    expect(registro.ejecuciones[0]?.parametros).toEqual([
+    const parametros = registro.ejecuciones[0]?.parametros ?? [];
+    expect(parametros.slice(0, 5)).toEqual([
       "Entregar informe",
       "Con anexos",
       1,
       "2026-11-20",
       null,
     ]);
+    expect(parametros[5]).toMatch(/^[0-9a-f-]{36}$/);
   });
 });
 
@@ -306,7 +308,7 @@ describe("eliminarTarea", () => {
     const resultado = await eliminarTarea(db, 9);
 
     expect(resultado).toBe(true);
-    expect(registro.ejecuciones[0]?.sql).toBe("DELETE FROM tarea WHERE id = ?");
+    expect(registro.ejecuciones[0]?.sql).toContain("SET deleted = 1");
     expect(registro.ejecuciones[0]?.parametros).toEqual([9]);
   });
 });

@@ -36,6 +36,7 @@ export type EstadoAcciones = {
   setAviso: EstadoTexto;
   historial: HistorialDeshacer;
   setHistorial: Dispatch<SetStateAction<HistorialDeshacer>>;
+  alCambiar?: () => void;
 };
 
 export type AccionesTareas = {
@@ -52,7 +53,7 @@ function reemplazar(tareas: Tarea[], tarea: Tarea): Tarea[] {
 }
 
 function useAlternar(estado: EstadoAcciones): (tarea: Tarea) => void {
-  const { setTareas, setError, setAviso, setHistorial } = estado;
+  const { setTareas, setError, setAviso, setHistorial, alCambiar } = estado;
 
   return useCallback(
     (tarea: Tarea) => {
@@ -65,17 +66,18 @@ function useAlternar(estado: EstadoAcciones): (tarea: Tarea) => void {
           setTareas((previas) => reemplazar(previas, resultado.tarea));
           setHistorial(registrarEnHistorial(HISTORIAL_VACIO, tarea));
           if (resultado.aviso !== undefined) setAviso(resultado.aviso);
+          alCambiar?.();
         } catch {
           setError(MENSAJE_ALTERAR);
         }
       })();
     },
-    [setAviso, setError, setHistorial, setTareas],
+    [alCambiar, setAviso, setError, setHistorial, setTareas],
   );
 }
 
 function usePosponer(estado: EstadoAcciones): (tarea: Tarea) => void {
-  const { setTareas, setError, setAviso, setHistorial } = estado;
+  const { setTareas, setError, setAviso, setHistorial, alCambiar } = estado;
 
   return useCallback(
     (tarea: Tarea) => {
@@ -92,17 +94,18 @@ function usePosponer(estado: EstadoAcciones): (tarea: Tarea) => void {
           setTareas((previas) => reemplazar(previas, resultado.tarea));
           setHistorial(registrarEnHistorial(HISTORIAL_VACIO, tarea));
           if (resultado.aviso !== undefined) setAviso(resultado.aviso);
+          alCambiar?.();
         } catch {
           setError(MENSAJE_ALTERAR);
         }
       })();
     },
-    [setAviso, setError, setHistorial, setTareas],
+    [alCambiar, setAviso, setError, setHistorial, setTareas],
   );
 }
 
 function useCrear(estado: EstadoAcciones): (entrada: EntradaTarea) => Promise<ResultadoGuardado> {
-  const { setTareas, setAviso, setHistorial } = estado;
+  const { setTareas, setAviso, setHistorial, alCambiar } = estado;
 
   return useCallback(
     async (entrada: EntradaTarea): Promise<ResultadoGuardado> => {
@@ -113,20 +116,21 @@ function useCrear(estado: EstadoAcciones): (entrada: EntradaTarea) => Promise<Re
           setTareas((previas) => ordenarTareas([...previas, resultado.tarea]));
           setHistorial(HISTORIAL_VACIO);
           if (resultado.aviso !== undefined) setAviso(resultado.aviso);
+          alCambiar?.();
         }
         return resultado;
       } catch {
         return { ok: false, errores: {}, error: MENSAJE_CREAR };
       }
     },
-    [setAviso, setHistorial, setTareas],
+    [alCambiar, setAviso, setHistorial, setTareas],
   );
 }
 
 function useActualizar(
   estado: EstadoAcciones,
 ): (id: number, entrada: EntradaTarea) => Promise<ResultadoGuardado> {
-  const { tareas, setTareas, setAviso, setHistorial } = estado;
+  const { tareas, setTareas, setAviso, setHistorial, alCambiar } = estado;
 
   return useCallback(
     async (id: number, entrada: EntradaTarea): Promise<ResultadoGuardado> => {
@@ -138,18 +142,19 @@ function useActualizar(
           setTareas((previas) => reemplazar(previas, resultado.tarea));
           if (anterior !== undefined) setHistorial(registrarEnHistorial(HISTORIAL_VACIO, anterior));
           if (resultado.aviso !== undefined) setAviso(resultado.aviso);
+          alCambiar?.();
         }
         return resultado;
       } catch {
         return { ok: false, errores: {}, error: MENSAJE_ACTUALIZAR };
       }
     },
-    [setAviso, setHistorial, setTareas, tareas],
+    [alCambiar, setAviso, setHistorial, setTareas, tareas],
   );
 }
 
 function useEliminar(estado: EstadoAcciones): (id: number) => Promise<boolean> {
-  const { setTareas, setHistorial, setError } = estado;
+  const { setTareas, setHistorial, setError, alCambiar } = estado;
 
   return useCallback(
     async (id: number): Promise<boolean> => {
@@ -159,6 +164,7 @@ function useEliminar(estado: EstadoAcciones): (id: number) => Promise<boolean> {
         if (eliminada) {
           setTareas((previas) => previas.filter((tarea) => tarea.id !== id));
           setHistorial(HISTORIAL_VACIO);
+          alCambiar?.();
         } else {
           setError(MENSAJE_ELIMINAR);
         }
@@ -168,12 +174,12 @@ function useEliminar(estado: EstadoAcciones): (id: number) => Promise<boolean> {
         return false;
       }
     },
-    [setError, setHistorial, setTareas],
+    [alCambiar, setError, setHistorial, setTareas],
   );
 }
 
 function useDeshacer(estado: EstadoAcciones): () => void {
-  const { historial, setTareas, setAviso, setError, setHistorial } = estado;
+  const { historial, setTareas, setAviso, setError, setHistorial, alCambiar } = estado;
 
   return useCallback(() => {
     const { tarea, historial: vacio } = deshacerHistorial(historial);
@@ -193,11 +199,12 @@ function useDeshacer(estado: EstadoAcciones): () => void {
         }
         setTareas((previas) => reemplazar(previas, resultado.tarea));
         if (resultado.aviso !== undefined) setAviso(resultado.aviso);
+        alCambiar?.();
       } catch {
         setError(MENSAJE_DESHACER);
       }
     })();
-  }, [historial, setAviso, setError, setHistorial, setTareas]);
+  }, [alCambiar, historial, setAviso, setError, setHistorial, setTareas]);
 }
 
 export function useAccionesTareas(estado: EstadoAcciones): AccionesTareas {

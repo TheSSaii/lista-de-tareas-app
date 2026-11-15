@@ -42,3 +42,28 @@ jest.mock("expo-sensors", () => ({
     setUpdateInterval: jest.fn(),
   },
 }));
+
+jest.mock("expo-secure-store", () => {
+  const memoria = new Map<string, string>();
+
+  return {
+    __memoria: memoria,
+    deleteItemAsync: jest.fn(async (clave: string) => {
+      memoria.delete(clave);
+    }),
+    getItemAsync: jest.fn(async (clave: string) => memoria.get(clave) ?? null),
+    setItemAsync: jest.fn(async (clave: string, valor: string) => {
+      memoria.set(clave, valor);
+    }),
+  };
+});
+
+jest.mock("expo-crypto", () => {
+  let contador = 0;
+  return {
+    randomUUID: jest.fn(() => {
+      contador += 1;
+      return `00000000-0000-4000-8000-${String(contador).padStart(12, "0")}`;
+    }),
+  };
+});

@@ -54,6 +54,10 @@ export function fila(cambios: Partial<FilaTarea> = {}): FilaTarea {
     vence_en: null,
     completada: 0,
     notificacion_id: null,
+    remote_id: null,
+    updated_at: null,
+    deleted: 0,
+    pending: 0,
     ...cambios,
   };
 }

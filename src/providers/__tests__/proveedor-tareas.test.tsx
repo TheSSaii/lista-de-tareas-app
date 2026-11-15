@@ -7,6 +7,14 @@ import { crearBaseFalsa, fila } from "../../testing/base-falsa";
 import { ProveedorTareas, useTareas } from "../proveedor-tareas";
 
 jest.mock("../../db/base-sesion", () => ({ obtenerBaseDeDatos: jest.fn() }));
+jest.mock("../proveedor-sesion", () => ({
+  useSesion: () => ({
+    estado: "autenticado",
+    usuario: { id: "uid-1", email: "persona@ejemplo.test" },
+    apiTareas: null,
+    errorConfig: null,
+  }),
+}));
 
 const obtenerBaseDeDatosMock = obtenerBaseDeDatos as jest.MockedFunction<typeof obtenerBaseDeDatos>;
 
@@ -48,6 +56,6 @@ describe("ProveedorTareas", () => {
     await fireEvent.press(getByLabelText("Eliminar primera tarea"));
 
     await waitFor(() => expect(getByTestId("conteo").props.children).toBe("0"));
-    expect(registro.ejecuciones[0]?.sql).toBe("DELETE FROM tarea WHERE id = ?");
+    expect(registro.ejecuciones[0]?.sql).toContain("SET deleted = 1");
   });
 });

@@ -17,4 +17,19 @@ export const migraciones: readonly Migracion[] = [
   notificacion_id TEXT
 );`,
   },
+  {
+    version: 2,
+    sql: `ALTER TABLE tarea ADD COLUMN remote_id TEXT;
+ALTER TABLE tarea ADD COLUMN updated_at TEXT;
+ALTER TABLE tarea ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tarea ADD COLUMN pending INTEGER NOT NULL DEFAULT 0;
+UPDATE tarea SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE updated_at IS NULL;
+UPDATE tarea SET pending = 1;
+CREATE UNIQUE INDEX idx_tarea_remote_id ON tarea(remote_id) WHERE remote_id IS NOT NULL;
+CREATE INDEX idx_tarea_pendiente ON tarea(pending);
+CREATE TABLE sincronizacion (
+  clave TEXT PRIMARY KEY NOT NULL,
+  valor TEXT NOT NULL
+);`,
+  },
 ];

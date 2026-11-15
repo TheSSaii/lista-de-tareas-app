@@ -40,9 +40,10 @@ function crearBaseFalsa(
 }
 
 const VERSION_1 = migraciones.find((migracion) => migracion.version === 1);
+const VERSION_2 = migraciones.find((migracion) => migracion.version === 2);
 
 describe("migrar", () => {
-  it("aplica la versión 1 sobre una base vacía y deja user_version = 1", async () => {
+  it("aplica la v1 y la v2 sobre una base vacía y deja user_version = 2", async () => {
     const { db, registro } = crearBaseFalsa(0);
 
     await migrar(db);
@@ -52,69 +53,92 @@ describe("migrar", () => {
       "BEGIN",
       VERSION_1?.sql,
       "PRAGMA user_version = 1",
+      VERSION_2?.sql,
+      "PRAGMA user_version = 2",
       "COMMIT",
     ]);
   });
 
-  it("no vuelve a ejecutar nada si user_version ya es 1", async () => {
+  it("aplica solo la v2 si user_version ya es 1", async () => {
     const { db, registro } = crearBaseFalsa(1);
+
+    await migrar(db);
+
+    expect(registro.ejecutadas).toEqual([
+      "BEGIN",
+      VERSION_2?.sql,
+      "PRAGMA user_version = 2",
+      "COMMIT",
+    ]);
+  });
+});
+
+describe("migrar: no-op y versiones posteriores", () => {
+  it("no vuelve a ejecutar nada si user_version ya es 2", async () => {
+    const { db, registro } = crearBaseFalsa(2);
 
     await migrar(db);
 
     expect(registro.ejecutadas).toEqual([]);
   });
 
-  it("aplica solo las migraciones pendientes cuando existe la versión 2", async () => {
-    const version2 = { version: 2, sql: "CREATE TABLE extra (id INTEGER);" };
-    const { db, registro } = crearBaseFalsa(1);
+  it("aplica solo las migraciones posteriores a la versión actual", async () => {
+    const version3 = { version: 3, sql: "CREATE TABLE extra (id INTEGER);" };
+    const { db, registro } = crearBaseFalsa(2);
 
-    await migrar(db, [...migraciones, version2]);
+    await migrar(db, [...migraciones, version3]);
 
     expect(registro.ejecutadas).toEqual([
       "BEGIN",
-      version2.sql,
-      "PRAGMA user_version = 2",
+      version3.sql,
+      "PRAGMA user_version = 3",
       "COMMIT",
     ]);
-    expect(registro.ejecutadas).not.toContain(VERSION_1?.sql);
+    expect(registro.ejecutadas).not.toContain(VERSION_2?.sql);
   });
 });
 
 describe("migrar: orden y errores", () => {
   it("ordena las migraciones pendientes por versión antes de aplicarlas", async () => {
-    const version2 = { version: 2, sql: "CREATE TABLE dos (id INTEGER);" };
     const version3 = { version: 3, sql: "CREATE TABLE tres (id INTEGER);" };
-    const { db, registro } = crearBaseFalsa(0);
+    const version4 = { version: 4, sql: "CREATE TABLE cuatro (id INTEGER);" };
+    const { db, registro } = crearBaseFalsa(2);
 
-    await migrar(db, [version3, version2]);
+    await migrar(db, [version4, version3]);
 
     expect(registro.ejecutadas).toEqual([
       "BEGIN",
-      version2.sql,
-      "PRAGMA user_version = 2",
       version3.sql,
       "PRAGMA user_version = 3",
+      version4.sql,
+      "PRAGMA user_version = 4",
       "COMMIT",
     ]);
   });
 
   it("rechaza una versión inválida sin fijarla", async () => {
-    const invalida = { version: 1.5, sql: "CREATE TABLE invalida (id INTEGER);" };
-    const { db, registro } = crearBaseFalsa(0);
+    const invalida = { version: 2.5, sql: "CREATE TABLE invalida (id INTEGER);" };
+    const { db, registro } = crearBaseFalsa(2);
 
-    await expect(migrar(db, [invalida])).rejects.toThrow("versión de migración inválida: 1.5");
+    await expect(migrar(db, [invalida])).rejects.toThrow("versión de migración inválida: 2.5");
 
     expect(registro.ejecutadas).toEqual(["BEGIN", invalida.sql, "ROLLBACK"]);
   });
 
-  it("hace ROLLBACK, relanza el error y no actualiza user_version si una migración falla", async () => {
-    const version2 = { version: 2, sql: "ALTER TABLE tarea ADD COLUMN falla TEXT;" };
-    const { db, registro } = crearBaseFalsa(1, version2.sql);
+  it("hace ROLLBACK, relanza el error y no fija la versión que falla", async () => {
+    const version3 = { version: 3, sql: "ALTER TABLE tarea ADD COLUMN falla TEXT;" };
+    const { db, registro } = crearBaseFalsa(1, version3.sql);
 
-    await expect(migrar(db, [...migraciones, version2])).rejects.toThrow("fallo simulado");
+    await expect(migrar(db, [...migraciones, version3])).rejects.toThrow("fallo simulado");
 
-    expect(registro.ejecutadas).toEqual(["BEGIN", version2.sql, "ROLLBACK"]);
-    expect(registro.ejecutadas).not.toContain("PRAGMA user_version = 2");
+    expect(registro.ejecutadas).toEqual([
+      "BEGIN",
+      VERSION_2?.sql,
+      "PRAGMA user_version = 2",
+      version3.sql,
+      "ROLLBACK",
+    ]);
+    expect(registro.ejecutadas).not.toContain("PRAGMA user_version = 3");
     expect(registro.ejecutadas).not.toContain("COMMIT");
   });
 });
