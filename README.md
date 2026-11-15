@@ -14,6 +14,20 @@ npm run check:ia        # pruebas de la configuración de IA
 npm run build           # exportación web (prueba de compilación)
 ```
 
+## APK con EAS
+
+El perfil `preview` de `eas.json` genera un APK para Android e inyecta la URL
+pública de la API:
+
+```bash
+npx eas-cli login
+npx eas-cli build -p android --profile preview
+```
+
+Al terminar, EAS entrega el enlace de descarga del APK. Para iOS se usa el mismo
+perfil con `--platform ios`, pero requiere cuenta de Apple y registrar el
+dispositivo.
+
 ## Configuración
 
 Crea un `.env` local (ignorado por Git) antes de probar el login:
