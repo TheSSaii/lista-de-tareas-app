@@ -267,6 +267,21 @@ Formato: propósito · evidencia · validación · decisión.
   single-flight y cada petición reintenta una sola vez.
 - **Decisión (logout durante refresh):** si la sesión se cierra mientras hay un
   refresh en vuelo, no se vuelve a guardar la sesión anterior.
-- **Pendiente:** matriz manual con la API real, migración sobre una base v1 en
-  dispositivo, expiración real de token, APK/EAS y verificación de SecureStore
-  en iOS/Android. Push a cargo del humano.
+- **Pendiente:** prueba del APK en Android por un tercero, demo de IA y
+  verificación de SecureStore en un build instalado. Push a cargo del humano.
+
+## 2026-11-15 · Cierre · APK con EAS
+
+- **Propósito:** generar el APK instalable y dejar un enlace de descarga en el
+  README para la entrega.
+- **Evidencia:** build EAS `8e381ee9-610e-4ea9-b9c6-dffde4f03793`, perfil
+  `preview`, Android internal distribution, `1.0.0 (1)`, commit `8adf593`;
+  artefacto público en
+  `https://expo.dev/artifacts/eas/DHHkFDq_MnEx0zU3ryFYu2TjM3zV5hHJvmq89P9nsxU.apk`.
+- **Validación:** build terminado; el artefacto responde `200` con
+  `application/octet-stream` y 109 MB. No hay dispositivo Android disponible:
+  se comparte el enlace y la instalación la valida un tercero. La app se probó
+  en iPhone con Expo Go.
+- **Decisión:** enlazar el artefacto directo, no la página privada del build,
+  y avisar que expira el 29/11/2026. El README conserva las seis capturas y las
+  rutas relativas de `docs/capturas/`.

@@ -14,19 +14,26 @@ npm run check:ia        # pruebas de la configuración de IA
 npm run build           # exportación web (prueba de compilación)
 ```
 
-## APK con EAS
+## APK de Android
 
-El perfil `preview` de `eas.json` genera un APK para Android e inyecta la URL
-pública de la API:
+**Descarga directa:** [APK 1.0.0 (1)](https://expo.dev/artifacts/eas/DHHkFDq_MnEx0zU3ryFYu2TjM3zV5hHJvmq89P9nsxU.apk)
+
+Build de EAS `8e381ee9-610e-4ea9-b9c6-dffde4f03793`, perfil `preview`,
+Android internal distribution, commit `8adf593`. El enlace del artefacto es
+público y descarga el APK directamente; la página del build puede pedir sesión
+de Expo. El artefacto está disponible hasta el **29 de noviembre de 2026**; si
+expira, descarga el APK y compártelo por Drive o GitHub Releases.
+
+El perfil `preview` de `eas.json` genera el APK e inyecta la URL pública de la
+API:
 
 ```bash
 npx eas-cli login
 npx eas-cli build -p android --profile preview
 ```
 
-Al terminar, EAS entrega el enlace de descarga del APK. Para iOS se usa el mismo
-perfil con `--platform ios`, pero requiere cuenta de Apple y registrar el
-dispositivo.
+Para iOS se usa el mismo perfil con `--platform ios`, pero requiere cuenta de
+Apple y registrar el dispositivo.
 
 ## Configuración
 
