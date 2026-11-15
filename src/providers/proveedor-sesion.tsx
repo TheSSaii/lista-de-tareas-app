@@ -90,7 +90,14 @@ function useCargaInicialSesion(
     let activo = true;
 
     void (async () => {
-      const guardada = await servicio.cargar();
+      // Sin URL de API no hay forma de autenticar: se muestra login con el
+      // aviso de configuración, aunque hubiera una sesión guardada.
+      if (solicitar === null) {
+        if (activo) setEstado("invitado");
+        return;
+      }
+
+      const guardada = await servicio.cargar().catch(() => null);
       if (!activo) return;
       if (guardada === null) {
         setEstado("invitado");
@@ -99,7 +106,6 @@ function useCargaInicialSesion(
 
       setUsuario(guardada.usuario);
       setEstado("autenticado");
-      if (solicitar === null) return;
 
       try {
         const datos = await solicitar<{ usuario: Usuario }>("/api/auth/yo");
